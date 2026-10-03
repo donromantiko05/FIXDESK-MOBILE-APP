@@ -4,13 +4,20 @@ import SignUpScreen from '../screens/SignUpScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ResetLinkSentScreen from '../screens/ResetLinkSentScreen';
 import TabNavigator from './TabNavigator';
-import DetailsScreen from '../screens/DetailsScreen';
- 
+import TicketDetailScreen from '../screens/TicketDetailScreen';
+import NewTicketScreen from '../screens/NewTicketScreen';
+import TicketSubmittedScreen from '../screens/TicketSubmittedScreen';
+import TicketsListScreen from '../screens/TicketsListScreen';
+import EmployeeHomeScreen from '../screens/EmployeeHomeScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
+import ScanEquipmentScreen from '../screens/ScanEquipmentScreen';
+
 const Stack = createNativeStackNavigator();
- 
+
 export default function StackNavigator() {
   return (
     <Stack.Navigator initialRouteName="Login">
+      {/* Auth screens */}
       <Stack.Screen
         name="Login"
         component={LoginScreen}
@@ -31,12 +38,55 @@ export default function StackNavigator() {
         component={ResetLinkSentScreen}
         options={{ headerShown: false }}
       />
+
+      {/* Main Tab Navigator */}
       <Stack.Screen
         name="Main"
         component={TabNavigator}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="Details" component={DetailsScreen} />
+
+      {/* Direct screen routes */}
+      <Stack.Screen
+        name="EmployeeHome"
+        component={EmployeeHomeScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="NewTicket"
+        component={NewTicketScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TicketSubmitted"
+        component={TicketSubmittedScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TicketDetail"
+        component={TicketDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Details"
+        component={TicketDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TicketsList"
+        component={TicketsListScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ScanEquipment"
+        component={ScanEquipmentScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }

@@ -6,14 +6,18 @@ import status from '../constants/status';
  
 // One ticket row: title + priority badge, ticket id + status.
 // ticket = { id, code, title, priority, status }
-export default function TicketCard({ ticket = {}, onPress }) {
+export default function TicketCard({ ticket = {}, onPress, accentBorder = false, style }) {
   if (!ticket) return null;
   const p = priority[ticket.priority?.toLowerCase?.()] ?? priority[ticket.priority] ?? priority.medium;
   const s = status[ticket.status?.toLowerCase?.()] ?? status[ticket.status] ?? status.unassigned;
  
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[
+        styles.card,
+        accentBorder && { borderLeftWidth: 4, borderLeftColor: p.color },
+        style,
+      ]}
       onPress={onPress}
       activeOpacity={0.8}
       accessibilityRole="button"
