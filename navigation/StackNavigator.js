@@ -11,6 +11,9 @@ import TicketsListScreen from '../screens/TicketsListScreen';
 import EmployeeHomeScreen from '../screens/EmployeeHomeScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ScanEquipmentScreen from '../screens/ScanEquipmentScreen';
+import TechQueueScreen from '../screens/TechQueueScreen';
+import TechStatusScreen from '../screens/TechStatusScreen';
+import TechHistoryScreen from '../screens/TechHistoryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -85,6 +88,27 @@ export default function StackNavigator() {
       <Stack.Screen
         name="ScanEquipment"
         component={ScanEquipmentScreen}
+        options={{ headerShown: false }}
+      />
+
+      {/* Technician routes */}
+      <Stack.Screen
+        name="TechQueue"
+        component={TechQueueScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TechStatus"
+        component={TechStatusScreen}
+        options={{
+          headerShown: false,
+          presentation: 'transparentModal',
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen
+        name="TechHistory"
+        component={TechHistoryScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

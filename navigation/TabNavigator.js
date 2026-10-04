@@ -16,6 +16,11 @@ import TicketsListScreen from '../screens/TicketsListScreen';
 import ScanEquipmentScreen from '../screens/ScanEquipmentScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 
+// Technician screens
+import TechQueueScreen from '../screens/TechQueueScreen';
+import TechStatusScreen from '../screens/TechStatusScreen';
+import TechHistoryScreen from '../screens/TechHistoryScreen';
+
 const Tab = createBottomTabNavigator();
 
 const ICONS = {
@@ -31,10 +36,16 @@ const ICONS = {
   Tickets: 'document-text-outline',
   Scan: 'qr-code-outline',
   Alerts: 'notifications-outline',
+
+  // Technician tabs
+  Queue: 'document-text-outline',
+  History: 'pulse-outline',
+  Status: 'person-outline',
 };
 
 export default function TabNavigator() {
-  const { isAdmin } = useAuth();
+  const { role, isAdmin } = useAuth();
+  const isTechnician = role === 'technician';
 
   return (
     <Tab.Navigator
@@ -52,7 +63,6 @@ export default function TabNavigator() {
         },
         tabBarIcon: ({ color, size, focused }) => {
           const iconName = ICONS[route.name] || 'ellipse-outline';
-          // Use solid icon if active and available
           const focusedName = focused
             ? iconName.replace('-outline', '')
             : iconName;
@@ -63,9 +73,20 @@ export default function TabNavigator() {
       {isAdmin ? (
         <>
           <Tab.Screen name="Overview" component={AdminOverviewScreen} />
-          <Tab.Screen name="AdminTickets" component={AdminTicketsScreen} options={{ tabBarLabel: 'Tickets' }} />
+          <Tab.Screen
+            name="AdminTickets"
+            component={AdminTicketsScreen}
+            options={{ tabBarLabel: 'Tickets' }}
+          />
           <Tab.Screen name="Techs" component={TechniciansScreen} />
           <Tab.Screen name="Equip" component={EquipmentScreen} />
+        </>
+      ) : isTechnician ? (
+        <>
+          <Tab.Screen name="Queue" component={TechQueueScreen} />
+          <Tab.Screen name="Scan" component={ScanEquipmentScreen} />
+          <Tab.Screen name="History" component={TechHistoryScreen} />
+          <Tab.Screen name="Status" component={TechStatusScreen} />
         </>
       ) : (
         <>

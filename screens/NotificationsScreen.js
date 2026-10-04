@@ -1,130 +1,319 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
+import EmptyState from '../components/EmptyState';
+import useNotifications from '../hooks/useNotifications';
 
-const MOCK_NOTIFICATIONS = [
+const FILTERS = ['All', 'Unread', 'Tickets'];
+
+const INITIAL_NOTIFICATIONS = [
   {
     id: '1',
-    title: 'Technician Assigned',
-    message: 'James Cruz was assigned to ticket TCK-2091.',
-    time: '2 hours ago',
-    read: false,
-    icon: 'person-outline',
+    title: 'Ticket received',
+    description: 'TCK-2101 is being evaluated',
+    time: 'just now',
+    icon: 'document-text-outline',
+    unread: true,
+    isTicket: true,
+    ticketCode: 'TCK-2101',
   },
   {
     id: '2',
-    title: 'Priority Evaluated',
-    message: 'Ticket TCK-2091 priority set to High.',
-    time: '3 hours ago',
-    read: true,
-    icon: 'flash-outline',
+    title: 'Technician assigned',
+    description: 'James Cruz was assigned to your ticket',
+    time: '3 min ago',
+    icon: 'person-outline',
+    unread: true,
+    isTicket: true,
+    ticketCode: 'TCK-2091',
   },
   {
     id: '3',
-    title: 'Ticket Completed',
-    message: 'Ticket TCK-2079 (Squeaky door hinge) was marked resolved.',
-    time: '1 day ago',
-    read: true,
-    icon: 'checkmark-circle-outline',
+    title: 'Repair started',
+    description: 'Repair started on TCK-2101',
+    time: '18 min ago',
+    icon: 'pulse-outline',
+    unread: false,
+    isTicket: true,
+    ticketCode: 'TCK-2101',
+  },
+  {
+    id: '4',
+    title: 'Repair completed',
+    description: 'Repair completed — please confirm',
+    time: '1 hr ago',
+    icon: 'checkmark-outline',
+    unread: false,
+    isTicket: true,
+    ticketCode: 'TCK-2079',
+  },
+  {
+    id: '5',
+    title: 'Schedule updated',
+    description: 'Weekly maintenance schedule updated',
+    time: 'Yesterday',
+    icon: 'calendar-outline',
+    unread: false,
+    isTicket: false,
   },
 ];
 
 export default function NotificationsScreen({ navigation }) {
+  const { notifications, markAsRead, clearAll } = useNotifications();
+  const [activeFilter, setActiveFilter] = useState('All');
+
+  const filteredNotifications = notifications.filter((item) => {
+    if (activeFilter === 'Unread') return item.unread;
+    if (activeFilter === 'Tickets') return item.isTicket;
+    return true;
+  });
+
+  const handleClearAll = () => {
+    if (notifications.length === 0) return;
+    Alert.alert(
+      'Clear Notifications',
+      'Are you sure you want to clear all notifications?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear All', style: 'destructive', onPress: () => clearAll() },
+      ]
+    );
+  };
+
+  const handleNotificationPress = async (item) => {
+    await markAsRead(item.id);
+
+    if (item.ticketCode) {
+      navigation.navigate('TicketDetail', {
+        id: item.ticketCode,
+        ticket: {
+          code: item.ticketCode,
+          title: item.title,
+          status: 'assigned',
+          priority: 'high',
+        },
+      });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        {navigation.canGoBack() && (
+        <View style={styles.headerLeft}>
+          {navigation.canGoBack() && (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={8}
+              style={styles.backBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>Notifications</Text>
+        </View>
+
+        {notifications.length > 0 && (
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={handleClearAll}
             hitSlop={8}
-            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Clear all notifications"
           >
-            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+            <Text style={styles.clearAllText}>Clear All</Text>
           </TouchableOpacity>
         )}
-        <Text style={styles.headerTitle}>Notifications</Text>
       </View>
 
+      {/* Filter Tabs */}
+      <View style={styles.filterRow}>
+        {FILTERS.map((filter) => {
+          const isSelected = activeFilter === filter;
+          return (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.filterPill,
+                isSelected ? styles.filterPillActive : styles.filterPillInactive,
+              ]}
+              onPress={() => setActiveFilter(filter)}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  isSelected ? styles.filterTextActive : styles.filterTextInactive,
+                ]}
+              >
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Notifications List */}
       <FlatList
-        data={MOCK_NOTIFICATIONS}
+        data={filteredNotifications}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <View style={[styles.card, !item.read && styles.cardUnread]}>
-            <View style={styles.iconCircle}>
-              <Ionicons name={item.icon} size={20} color={colors.primary} />
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => handleNotificationPress(item)}
+            activeOpacity={0.7}
+          >
+            {/* Left square icon container */}
+            <View style={styles.iconBox}>
+              <Ionicons name={item.icon} size={22} color={colors.textPrimary} />
             </View>
-            <View style={styles.textWrap}>
-              <View style={styles.titleRow}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.time}>{item.time}</Text>
+
+            {/* Middle and Right Text */}
+            <View style={styles.contentWrap}>
+              <View style={styles.topRow}>
+                <Text style={styles.itemTitle}>{item.title}</Text>
+                <Text style={styles.itemTime}>{item.time}</Text>
               </View>
-              <Text style={styles.message}>{item.message}</Text>
+              <Text style={styles.itemDescription} numberOfLines={2}>
+                {item.description}
+              </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
+        ListEmptyComponent={
+          <EmptyState
+            icon="notifications-off-outline"
+            title="No notifications"
+            message={
+              activeFilter === 'All'
+                ? "You're all caught up! New updates will appear here."
+                : `No ${activeFilter.toLowerCase()} notifications found.`
+            }
+          />
+        }
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
+  safe: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 10,
     backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  backBtn: { marginRight: 12 },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backBtn: {
+    marginRight: 12,
+  },
   headerTitle: {
-    fontSize: typography.size.lg,
+    fontSize: typography.size.xl,
     fontWeight: typography.weight.bold,
     color: colors.textPrimary,
   },
-  listContent: { padding: 16 },
+  clearAllText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.primary,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterPillActive: {
+    backgroundColor: colors.textPrimary,
+  },
+  filterPillInactive: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterText: {
+    fontSize: typography.size.xs,
+  },
+  filterTextActive: {
+    color: colors.white,
+    fontWeight: typography.weight.semibold,
+  },
+  filterTextInactive: {
+    color: colors.textSecondary,
+    fontWeight: typography.weight.medium,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 32,
+  },
   card: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,
     padding: 14,
-    marginBottom: 10,
-    alignItems: 'center',
+    marginBottom: 8,
   },
-  cardUnread: {
-    borderColor: colors.primary,
-    backgroundColor: '#F7FAFC',
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EDF2F7',
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#F1F4F8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
-  textWrap: { flex: 1 },
-  titleRow: {
+  contentWrap: {
+    flex: 1,
+  },
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
-  title: {
+  itemTitle: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.bold,
     color: colors.textPrimary,
   },
-  time: { fontSize: typography.size.xs, color: colors.textSecondary },
-  message: {
+  itemTime: {
+    fontSize: typography.size.xs,
+    color: '#8C96A5',
+  },
+  itemDescription: {
     fontSize: typography.size.xs,
     color: colors.textSecondary,
     lineHeight: 18,
