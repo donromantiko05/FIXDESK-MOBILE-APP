@@ -8,6 +8,11 @@ import {
   serverTimestamp,
   query,
   orderBy,
+  where,
+  limit,
+  onSnapshot,
+  updateDoc,
+  arrayUnion,
 } from 'firebase/firestore';
 import { db } from './config';
 
@@ -131,45 +136,67 @@ export const INITIAL_TICKETS = [
 ];
 
 // In-memory cache for fast local access
-let localTickets = [...INITIAL_TICKETS];
-const listeners = new Set();
+let localTickets = [];
+const listeners = new Map();
+
+const filterTicketsFor = (tickets, scope = {}) => {
+  if (scope.role === 'admin') return [...tickets];
+  if (!scope.userId) return [];
+  if (scope.role === 'technician') return tickets.filter((ticket) => ticket.assignedTo === scope.userId);
+  return tickets.filter((ticket) => ticket.reporterId === scope.userId);
+};
 
 const notifyListeners = () => {
-  listeners.forEach((listener) => {
+  listeners.forEach((scope, listener) => {
     try {
-      listener([...localTickets]);
+      listener(filterTicketsFor(localTickets, scope));
     } catch (e) {}
   });
 };
 
-export const subscribeTickets = (callback) => {
-  listeners.add(callback);
-  callback([...localTickets]);
+const ticketsQuery = (scope) => {
+  const ticketCollection = collection(db, 'tickets');
+  if (scope?.role === 'admin') return query(ticketCollection, orderBy('createdAt', 'desc'));
+  if (scope?.role === 'technician') return query(ticketCollection, where('assignedTo', '==', scope.userId));
+  return query(ticketCollection, where('reporterId', '==', scope?.userId));
+};
+
+export const subscribeTickets = (callback, onError = () => {}, scope = {}) => {
+  listeners.set(callback, scope);
+  callback(filterTicketsFor(localTickets, scope));
+  if (!scope.userId) return () => listeners.delete(callback);
+  const firestoreUnsubscribe = onSnapshot(
+    ticketsQuery(scope),
+    (snapshot) => {
+      const remote = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      localTickets = [...remote, ...localTickets.filter((ticket) => !remote.some((item) => item.id === ticket.id))];
+      callback(remote.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)));
+    },
+    onError
+  );
   return () => {
     listeners.delete(callback);
+    firestoreUnsubscribe();
   };
 };
 
-export const getTickets = async () => {
+export const getTickets = async (scope = {}) => {
+  if (!scope.userId) return [];
   try {
-    const q = query(collection(db, 'tickets'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      const remote = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      localTickets = remote;
-      notifyListeners();
-      return remote;
-    }
+    const snapshot = await getDocs(ticketsQuery(scope));
+    const remote = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    localTickets = [...remote, ...localTickets.filter((ticket) => !remote.some((item) => item.id === ticket.id))];
+    notifyListeners();
+    return remote.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
   } catch (e) {
-    // offline or Firestore not ready yet, return local
+    // Keep the current in-memory list available while offline.
   }
-  return [...localTickets];
+  return filterTicketsFor(localTickets, scope);
 };
 
 export const createTicket = async (ticketData) => {
-  const nextNumber = 2100 + localTickets.length + 1;
-  const code = `TCK-${nextNumber}`;
   const now = new Date();
+  const code = `TCK-${now.getTime()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
   const dateStr = now.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -193,8 +220,11 @@ export const createTicket = async (ticketData) => {
     priority: ticketData.priority || 'medium',
     status: ticketData.status || 'evaluating',
     reporter: ticketData.reporter || 'Current User',
+    reporterId: ticketData.reporterId || null,
     filedDate: dateStr,
     photos: ticketData.photos || [],
+    priorityScore: ticketData.priorityScore ?? null,
+    priorityFactors: ticketData.priorityFactors || [],
     timeline: [
       { title: 'Reported', time: `${dateStr} ${timeStr}`, done: true },
       {
@@ -205,26 +235,64 @@ export const createTicket = async (ticketData) => {
     ],
   };
 
-  // Prepend to local memory store
+  const docRef = await addDoc(collection(db, 'tickets'), {
+    ...newTicket,
+    createdAt: serverTimestamp(),
+  });
+  newTicket.id = docRef.id;
   localTickets = [newTicket, ...localTickets];
   notifyListeners();
 
-  // Also persist to Firestore if connected
-  try {
-    const docRef = await addDoc(collection(db, 'tickets'), {
-      ...newTicket,
-      createdAt: serverTimestamp(),
-    });
-    newTicket.id = docRef.id;
-  } catch (e) {
-    // offline mode is supported
+  return newTicket;
+};
+
+export const updateTicket = async (idOrCode, changes = {}) => {
+  let ticketRef = doc(db, 'tickets', String(idOrCode));
+  let ticketSnap = await getDoc(ticketRef);
+
+  if (!ticketSnap.exists()) {
+    const match = await getDocs(
+      query(collection(db, 'tickets'), where('code', '==', String(idOrCode)), limit(1))
+    );
+    if (match.empty) throw new Error('Ticket not found.');
+    ticketSnap = match.docs[0];
+    ticketRef = ticketSnap.ref;
   }
 
-  return newTicket;
+  const { timelineEntry, ...fields } = changes;
+  const update = { ...fields, updatedAt: serverTimestamp() };
+  if (timelineEntry) update.timeline = arrayUnion(timelineEntry);
+  await updateDoc(ticketRef, update);
+
+  const prior = ticketSnap.data();
+  const updatedTicket = {
+    id: ticketSnap.id,
+    ...prior,
+    ...fields,
+    timeline: timelineEntry ? [...(prior.timeline || []), timelineEntry] : prior.timeline || [],
+  };
+  localTickets = localTickets.map((ticket) =>
+    ticket.id === String(idOrCode) || ticket.code === String(idOrCode) || ticket.id === ticketSnap.id
+      ? updatedTicket
+      : ticket
+  );
+  notifyListeners();
+  return updatedTicket;
 };
 
 export const getTicketById = (idOrCode) => {
   return localTickets.find(
     (t) => t.id === idOrCode || t.code === idOrCode
   ) || null;
+};
+
+export const fetchTicketById = async (idOrCode) => {
+  if (!idOrCode) return null;
+  const ref = doc(db, 'tickets', String(idOrCode));
+  const direct = await getDoc(ref);
+  if (direct.exists()) return { id: direct.id, ...direct.data() };
+  const match = await getDocs(
+    query(collection(db, 'tickets'), where('code', '==', String(idOrCode)), limit(1))
+  );
+  return match.empty ? null : { id: match.docs[0].id, ...match.docs[0].data() };
 };

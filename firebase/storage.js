@@ -1,6 +1,6 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
-import { storage } from './config';
+import { auth, storage } from './config';
 
 /**
  * Request camera permissions and take a photo
@@ -59,17 +59,16 @@ export const uploadImageToFirebase = async (uri, folder = 'tickets') => {
     const response = await fetch(uri);
     const blob = await response.blob();
     const randomId = Math.random().toString(36).substring(2, 9);
-    const fileName = `${folder}/${Date.now()}_${randomId}.jpg`;
+    const ownerId = auth.currentUser?.uid;
+    if (!ownerId) throw new Error('Sign in before uploading a photo.');
+    const fileName = `${folder}/${ownerId}/${Date.now()}_${randomId}.jpg`;
     const storageRef = ref(storage, fileName);
 
     await uploadBytes(storageRef, blob);
     const downloadUrl = await getDownloadURL(storageRef);
     return downloadUrl;
   } catch (error) {
-    if (__DEV__) {
-      console.warn('Firebase Storage upload failed, using local URI:', error?.message);
-    }
-    // Fall back to local URI so user experience isn't interrupted
-    return uri;
+    if (__DEV__) console.warn('Firebase Storage upload failed:', error?.message);
+    throw new Error('Photo upload failed. Check Firebase Storage access and try again.');
   }
 };

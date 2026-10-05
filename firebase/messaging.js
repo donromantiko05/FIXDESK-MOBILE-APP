@@ -1,182 +1,82 @@
 import {
-  collection,
   addDoc,
+  collection,
   doc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
+  getDoc,
+  getDocs,
   onSnapshot,
+  query,
   serverTimestamp,
+  updateDoc,
+  where,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from './config';
 
-const INITIAL_NOTIFICATIONS = [
-  {
-    id: '1',
-    title: 'Ticket received',
-    description: 'TCK-2101 is being evaluated',
-    time: 'just now',
-    icon: 'document-text-outline',
-    unread: true,
-    isTicket: true,
-    ticketCode: 'TCK-2101',
-  },
-  {
-    id: '2',
-    title: 'Technician assigned',
-    description: 'James Cruz was assigned to your ticket',
-    time: '3 min ago',
-    icon: 'person-outline',
-    unread: true,
-    isTicket: true,
-    ticketCode: 'TCK-2091',
-  },
-  {
-    id: '3',
-    title: 'Repair started',
-    description: 'Repair started on TCK-2101',
-    time: '18 min ago',
-    icon: 'pulse-outline',
-    unread: false,
-    isTicket: true,
-    ticketCode: 'TCK-2101',
-  },
-  {
-    id: '4',
-    title: 'Repair completed',
-    description: 'Repair completed — please confirm',
-    time: '1 hr ago',
-    icon: 'checkmark-outline',
-    unread: false,
-    isTicket: true,
-    ticketCode: 'TCK-2079',
-  },
-  {
-    id: '5',
-    title: 'Schedule updated',
-    description: 'Weekly maintenance schedule updated',
-    time: 'Yesterday',
-    icon: 'calendar-outline',
-    unread: false,
-    isTicket: false,
-  },
-];
+const notificationsRef = collection(db, 'notifications');
 
-let localNotifications = [...INITIAL_NOTIFICATIONS];
-const listeners = new Set();
-
-const notifyListeners = () => {
-  listeners.forEach((listener) => {
-    try {
-      listener([...localNotifications]);
-    } catch (e) {}
-  });
-};
-
-/**
- * Subscribe to notifications in real-time
- */
-export const subscribeNotifications = (userId, callback) => {
-  listeners.add(callback);
-  callback([...localNotifications]);
-
+export const subscribeNotifications = (userId, callback, onError = () => {}) => {
   if (!userId) {
-    return () => listeners.delete(callback);
+    callback([]);
+    return () => {};
   }
 
-  try {
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribeFirestore = onSnapshot(
-      q,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const list = snapshot.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...docSnap.data(),
-          }));
-          localNotifications = list;
-          notifyListeners();
-        }
-      },
-      (error) => {
-        if (__DEV__) console.warn('Notifications snapshot error:', error.message);
-      }
-    );
-
-    return () => {
-      listeners.delete(callback);
-      unsubscribeFirestore();
-    };
-  } catch (e) {
-    return () => listeners.delete(callback);
-  }
+  const q = query(notificationsRef, where('userId', '==', userId));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const notifications = snapshot.docs
+        .map((item) => ({ id: item.id, ...item.data() }))
+        .sort((a, b) => {
+          const timeA = a.createdAt?.toMillis?.() || 0;
+          const timeB = b.createdAt?.toMillis?.() || 0;
+          return timeB - timeA;
+        });
+      callback(notifications);
+    },
+    onError
+  );
 };
 
-/**
- * Create a new notification
- */
 export const createNotification = async ({
   userId,
   title,
   description,
   isTicket = true,
   ticketCode = null,
+  ticketId = null,
   icon = 'notifications-outline',
 }) => {
-  const newNotif = {
-    id: String(Date.now()),
-    title,
-    description,
-    time: 'just now',
-    icon,
-    unread: true,
+  if (!userId) throw new Error('A user ID is required for a notification.');
+  const record = {
+    userId,
+    title: String(title || 'FixDesk update'),
+    description: String(description || ''),
     isTicket,
     ticketCode,
-    userId: userId || null,
+    ticketId,
+    icon,
+    unread: true,
+    createdAt: serverTimestamp(),
   };
-
-  localNotifications = [newNotif, ...localNotifications];
-  notifyListeners();
-
-  try {
-    const docRef = await addDoc(collection(db, 'notifications'), {
-      ...newNotif,
-      createdAt: serverTimestamp(),
-    });
-    newNotif.id = docRef.id;
-  } catch (e) {
-    // Offline fallback
-  }
-
-  return newNotif;
+  const ref = await addDoc(notificationsRef, record);
+  return { id: ref.id, ...record };
 };
 
-/**
- * Mark a notification as read
- */
-export const markNotificationAsRead = async (notificationId) => {
-  localNotifications = localNotifications.map((n) =>
-    n.id === notificationId ? { ...n, unread: false } : n
-  );
-  notifyListeners();
-
-  try {
-    const notifRef = doc(db, 'notifications', notificationId);
-    await updateDoc(notifRef, { unread: false });
-  } catch (e) {}
+export const markNotificationAsRead = async (notificationId, userId) => {
+  if (!notificationId || !userId) return;
+  const ref = doc(db, 'notifications', notificationId);
+  const snap = await getDoc(ref);
+  if (!snap.exists() || snap.data().userId !== userId) return;
+  await updateDoc(ref, { unread: false, readAt: serverTimestamp() });
 };
 
-/**
- * Clear all notifications
- */
 export const clearAllNotifications = async (userId) => {
-  localNotifications = [];
-  notifyListeners();
+  if (!userId) return;
+  const snapshot = await getDocs(query(notificationsRef, where('userId', '==', userId)));
+  for (let start = 0; start < snapshot.docs.length; start += 450) {
+    const batch = writeBatch(db);
+    snapshot.docs.slice(start, start + 450).forEach((item) => batch.delete(item.ref));
+    await batch.commit();
+  }
 };

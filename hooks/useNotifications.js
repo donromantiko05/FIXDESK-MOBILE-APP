@@ -10,39 +10,39 @@ import { auth } from '../firebase/config';
 export default function useNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const userId = auth.currentUser?.uid || null;
 
   useEffect(() => {
-    const currentUserId = auth.currentUser?.uid;
-    const unsubscribe = subscribeNotifications(currentUserId, (list) => {
-      setNotifications(list);
-      setLoading(false);
-    });
+    setLoading(true);
+    return subscribeNotifications(
+      userId,
+      (list) => {
+        setNotifications(list);
+        setLoading(false);
+      },
+      () => {
+        setNotifications([]);
+        setLoading(false);
+      }
+    );
+  }, [userId]);
 
-    return unsubscribe;
-  }, []);
+  const markAsRead = useCallback(
+    (id) => markNotificationAsRead(id, userId),
+    [userId]
+  );
 
-  const markAsRead = useCallback(async (id) => {
-    await markNotificationAsRead(id);
-  }, []);
+  const clearAll = useCallback(
+    () => clearAllNotifications(userId),
+    [userId]
+  );
 
-  const clearAll = useCallback(async () => {
-    const currentUserId = auth.currentUser?.uid;
-    await clearAllNotifications(currentUserId);
-  }, []);
+  const notify = useCallback(
+    (data) => createNotification({ userId, ...data }),
+    [userId]
+  );
 
-  const notify = useCallback(async (data) => {
-    const currentUserId = auth.currentUser?.uid;
-    return await createNotification({ userId: currentUserId, ...data });
-  }, []);
+  const unreadCount = notifications.filter((item) => item.unread).length;
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
-
-  return {
-    notifications,
-    loading,
-    unreadCount,
-    markAsRead,
-    clearAll,
-    notify,
-  };
+  return { notifications, loading, unreadCount, markAsRead, clearAll, notify };
 }

@@ -51,7 +51,7 @@ export default function TicketSubmittedScreen({ navigation, route }) {
           <Button
             title="View Ticket"
             onPress={() =>
-              navigation.navigate('TicketDetail', { ticket, id: ticket.id })
+              navigation.navigate('Details', { ticket, id: ticket.id })
             }
             style={styles.primaryBtn}
           />

@@ -3,11 +3,12 @@ import colors from '../constants/colors';
 import typography from '../constants/typography';
  
 // variant: 'primary' (blue) | 'purple' | 'green' | 'outline'
-export default function Button({ title, onPress, variant = 'primary', style }) {
+export default function Button({ title, onPress, variant = 'primary', style, disabled = false }) {
   return (
     <TouchableOpacity
-      style={[styles.base, styles[variant], style]}
+      style={[styles.base, styles[variant], disabled && styles.disabled, style]}
       onPress={onPress}
+      disabled={disabled}
       activeOpacity={0.85}
     >
       <Text style={[styles.text, variant === 'outline' && styles.outlineText]}>
@@ -32,6 +33,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  disabled: { opacity: 0.55 },
   text: {
     color: colors.white,
     fontSize: typography.size.md,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,49 +8,43 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
 import { PriorityBadge } from '../components/TicketCard';
+import useTickets from '../hooks/useTickets';
+import useAuth from '../hooks/useAuth';
+import { updateTicket } from '../firebase/tickets';
+import { createNotification } from '../firebase/messaging';
+import { updateTechnician } from '../firebase/technicians';
 
 export default function TechQueueScreen({ navigation }) {
-  const [techStatus, setTechStatus] = useState('Available');
+  const { tickets } = useTickets();
+  const { user, profile } = useAuth();
+  const [techStatus, setTechStatus] = useState(profile?.availability || 'Available');
+  const [saving, setSaving] = useState(false);
+  const techId = user?.uid;
+  const techName = profile?.fullName || user?.displayName || '';
 
-  // Stats matching design
+  useEffect(() => {
+    setTechStatus(profile?.availability || 'Available');
+  }, [profile?.availability]);
+
+  const activeJob = useMemo(() => tickets.find((ticket) =>
+    (ticket.assignedTo === techId || (techName && ticket.assignedTechnician === techName)) &&
+    ['accepted', 'in_progress', 'parts_ordered', 'on_hold'].includes(ticket.status)
+  ) || null, [tickets, techId, techName]);
+  const upNextJobs = useMemo(() => tickets.filter((ticket) =>
+    ['evaluating', 'unassigned', 'assigned'].includes(ticket.status) &&
+    (!ticket.assignedTo || ticket.assignedTo === techId)
+  ), [tickets, techId]);
+
   const stats = [
-    { label: 'Assigned Today', value: '4' },
-    { label: 'In Progress', value: '1' },
-    { label: 'Completed Week', value: '11' },
-    { label: 'Avg Repair Time', value: '2.3h' },
+    { label: 'Available Tickets', value: upNextJobs.length },
+    { label: 'Active Jobs', value: activeJob ? 1 : 0 },
+    { label: 'Completed', value: tickets.filter((ticket) => ticket.assignedTo === techId && ticket.status === 'completed').length },
+    { label: 'My Tickets', value: tickets.filter((ticket) => ticket.assignedTo === techId).length },
   ];
-
-  // Active Job
-  const [activeJob, setActiveJob] = useState({
-    id: '2',
-    code: 'TCK-2087',
-    title: 'Flickering light, meeting B',
-    priority: 'medium',
-    timeElapsed: '41 min elapsed',
-  });
-
-  // Up Next Queue
-  const [upNextJobs, setUpNextJobs] = useState([
-    {
-      id: '5',
-      code: 'TCK-2094',
-      title: 'Server room overheating',
-      priority: 'critical',
-      location: 'Fl. 1, Server Room',
-      isPrimaryAction: true,
-    },
-    {
-      id: '1',
-      code: 'TCK-2091',
-      title: 'AC not cooling',
-      priority: 'high',
-      location: 'Fl. 3, East Wing',
-      isPrimaryAction: false,
-    },
-  ]);
 
   const handleMarkCompleted = (job) => {
     navigation.navigate('TechStatus', {
@@ -65,23 +59,42 @@ export default function TechQueueScreen({ navigation }) {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Accept',
-        onPress: () => {
-          // Promote job to active
-          setActiveJob({
-            id: job.id,
-            code: job.code,
-            title: job.title,
-            priority: job.priority,
-            timeElapsed: 'Just started',
-          });
-          setUpNextJobs((prev) => prev.filter((j) => j.code !== job.code));
+        onPress: async () => {
+          setSaving(true);
+          try {
+            const updated = await updateTicket(job.id || job.code, {
+              status: 'accepted',
+              assignedTo: techId,
+              assignedTechnician: techName,
+              acceptedAt: new Date(),
+              firstResponseHours: job.createdAt?.toDate
+                ? Math.max(0, (Date.now() - job.createdAt.toDate().getTime()) / 3600000)
+                : null,
+              timelineEntry: { title: 'Accepted', subtitle: (techName || 'Technician') + ' accepted ticket', time: new Date().toLocaleString(), done: true },
+            });
+            if (updated.reporterId) {
+              createNotification({ userId: updated.reporterId, title: 'Technician accepted ticket', description: `${job.code} was accepted by ${techName || 'your technician'}.`, ticketCode: job.code, ticketId: updated.id }).catch(() => {});
+            }
+          } catch (error) {
+            Alert.alert('Could not accept ticket', error?.message || 'Check Firebase access and try again.');
+          } finally {
+            setSaving(false);
+          }
         },
       },
     ]);
   };
 
-  const handleToggleStatus = () => {
-    setTechStatus((prev) => (prev === 'Available' ? 'Busy' : 'Available'));
+  const handleToggleStatus = async () => {
+    const next = techStatus === 'Available' ? 'Busy' : 'Available';
+    setTechStatus(next);
+    if (!techId) return;
+    try {
+      await updateTechnician(techId, { availability: next });
+    } catch {
+      setTechStatus(techStatus);
+      Alert.alert('Could not update status', 'Check Firebase access and try again.');
+    }
   };
 
   return (
@@ -89,6 +102,9 @@ export default function TechQueueScreen({ navigation }) {
       {/* Top Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Queue</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Profile and settings">
+          <Ionicons name="person-circle-outline" size={25} color={colors.textPrimary} />
+        </TouchableOpacity>
         <TouchableOpacity
           style={[
             styles.statusPill,
@@ -168,7 +184,7 @@ export default function TechQueueScreen({ navigation }) {
             UP NEXT ({upNextJobs.length})
           </Text>
 
-          {upNextJobs.map((job) => (
+          {upNextJobs.map((job, index) => (
             <TouchableOpacity
               key={job.code}
               style={styles.upNextCard}
@@ -194,7 +210,7 @@ export default function TechQueueScreen({ navigation }) {
 
               <TouchableOpacity
                 style={
-                  job.isPrimaryAction
+                  index === 0
                     ? styles.acceptBtnPrimary
                     : styles.acceptBtnSecondary
                 }
@@ -203,7 +219,7 @@ export default function TechQueueScreen({ navigation }) {
               >
                 <Text
                   style={
-                    job.isPrimaryAction
+                    index === 0
                       ? styles.acceptBtnTextPrimary
                       : styles.acceptBtnTextSecondary
                   }

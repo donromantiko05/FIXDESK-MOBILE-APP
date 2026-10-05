@@ -68,6 +68,16 @@ const INITIAL_NOTIFICATIONS = [
   },
 ];
 
+const formatNotificationTime = (timestamp) => {
+  const date = timestamp?.toDate?.();
+  if (!date) return '';
+  const elapsed = Math.max(0, Date.now() - date.getTime());
+  if (elapsed < 60000) return 'just now';
+  if (elapsed < 3600000) return `${Math.floor(elapsed / 60000)} min ago`;
+  if (elapsed < 86400000) return `${Math.floor(elapsed / 3600000)} hr ago`;
+  return date.toLocaleDateString();
+};
+
 export default function NotificationsScreen({ navigation }) {
   const { notifications, markAsRead, clearAll } = useNotifications();
   const [activeFilter, setActiveFilter] = useState('All');
@@ -91,17 +101,15 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   const handleNotificationPress = async (item) => {
-    await markAsRead(item.id);
+    try {
+      await markAsRead(item.id);
+    } catch {
+      Alert.alert('Could not update notification', 'Check your Firebase connection and try again.');
+    }
 
     if (item.ticketCode) {
-      navigation.navigate('TicketDetail', {
-        id: item.ticketCode,
-        ticket: {
-          code: item.ticketCode,
-          title: item.title,
-          status: 'assigned',
-          priority: 'high',
-        },
+      navigation.navigate('Details', {
+        id: item.ticketId || item.ticketCode,
       });
     }
   };
@@ -184,7 +192,7 @@ export default function NotificationsScreen({ navigation }) {
             <View style={styles.contentWrap}>
               <View style={styles.topRow}>
                 <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.itemTime}>{item.time}</Text>
+                <Text style={styles.itemTime}>{formatNotificationTime(item.createdAt)}</Text>
               </View>
               <Text style={styles.itemDescription} numberOfLines={2}>
                 {item.description}

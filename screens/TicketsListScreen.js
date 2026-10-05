@@ -169,7 +169,7 @@ export default function TicketsListScreen({ navigation }) {
             ticket={item}
             accentBorder={true}
             onPress={() =>
-              navigation.navigate('TicketDetail', { ticket: item, id: item.id })
+              navigation.navigate('Details', { ticket: item, id: item.id })
             }
           />
         )}

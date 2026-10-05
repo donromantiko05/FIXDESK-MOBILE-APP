@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
@@ -54,6 +55,11 @@ export default function AdminOverviewScreen({ navigation }) {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Overview</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')} accessibilityRole="button" accessibilityLabel="Profile and settings"><Ionicons name="person-circle-outline" size={24} color={colors.textPrimary} /></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Reports')} accessibilityRole="button" accessibilityLabel="Reports"><Ionicons name="bar-chart-outline" size={21} color={colors.textPrimary} /></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('PriorityRules')} accessibilityRole="button" accessibilityLabel="Priority rules"><Ionicons name="options-outline" size={21} color={colors.textPrimary} /></TouchableOpacity>
+        </View>
       </View>
  
       <ScrollView contentContainerStyle={styles.content}>
@@ -92,12 +98,16 @@ export default function AdminOverviewScreen({ navigation }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: colors.surface,
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   headerTitle: {
     fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,

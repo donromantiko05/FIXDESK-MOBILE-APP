@@ -12,6 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import PhotoAttachment from '../components/PhotoAttachment';
+import { uploadImageToFirebase } from '../firebase/storage';
+import { createNotification } from '../firebase/messaging';
+import { updateTicket } from '../firebase/tickets';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
 
@@ -28,16 +32,50 @@ export default function TechStatusScreen({ navigation, route }) {
 
   const [selectedStatus, setSelectedStatus] = useState(defaultStatus);
   const [workLog, setWorkLog] = useState('');
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [photos, setPhotos] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (submitting) return;
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    setError('');
+    try {
+      const uploadedPhotos = await Promise.all(photos.map((uri) => uploadImageToFirebase(uri, 'work-photos')));
+      const statusValue = {
+        'In Progress': 'in_progress',
+        'Parts Ordered': 'parts_ordered',
+        'On Hold': 'on_hold',
+        Completed: 'completed',
+      }[selectedStatus];
+      const ticket = await updateTicket(ticketCode, {
+        status: statusValue,
+        workLog: workLog.trim(),
+        completionPhotos: uploadedPhotos,
+        ...(statusValue === 'completed' ? { completedAt: new Date() } : {}),
+        timelineEntry: {
+          title: selectedStatus,
+          subtitle: workLog.trim() || 'Status updated by technician',
+          time: new Date().toLocaleString(),
+          done: true,
+        },
+      });
+
+      if (ticket.reporterId) {
+        const userId = ticket.reporterId;
+        createNotification({
+          userId,
+          title: selectedStatus === 'completed' ? 'Repair completed' : 'Ticket update',
+          description: `${ticketCode}: ${selectedStatus}${workLog.trim() ? ' - ' + workLog.trim() : ''}`,
+          ticketCode,
+          ticketId: ticket.id,
+        }).catch((notificationError) => {
+          if (__DEV__) console.warn('Ticket updated, but notification failed:', notificationError?.message);
+        });
+      }
       Alert.alert(
         'Status Updated',
-        `Ticket ${ticketCode} status was updated to "${selectedStatus}".`,
+        `Ticket ${ticketCode} status was saved as "${selectedStatus}".`,
         [
           {
             text: 'OK',
@@ -51,7 +89,12 @@ export default function TechStatusScreen({ navigation, route }) {
           },
         ]
       );
-    }, 400);
+    } catch (submitError) {
+      setError('Could not save the ticket update. Check Firebase access and try again.');
+      if (__DEV__) console.warn('Ticket status update failed:', submitError?.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -132,30 +175,9 @@ export default function TechStatusScreen({ navigation, route }) {
             />
 
             {/* Attach completion photo */}
-            <TouchableOpacity
-              style={[
-                styles.attachPhotoBox,
-                hasPhoto && styles.attachPhotoBoxActive,
-              ]}
-              onPress={() => setHasPhoto(!hasPhoto)}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name={hasPhoto ? 'checkmark-circle' : 'camera-outline'}
-                size={22}
-                color={hasPhoto ? colors.green : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.attachPhotoText,
-                  hasPhoto && styles.attachPhotoTextActive,
-                ]}
-              >
-                {hasPhoto
-                  ? 'Photo attached (tap to remove)'
-                  : 'Attach completion photo'}
-              </Text>
-            </TouchableOpacity>
+            <PhotoAttachment photos={photos} onChange={setPhotos} />
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
             {/* Buttons */}
             <TouchableOpacity
@@ -315,6 +337,11 @@ const styles = StyleSheet.create({
   attachPhotoTextActive: {
     color: colors.green,
     fontWeight: typography.weight.semibold,
+  },
+  error: {
+    color: colors.danger,
+    fontSize: typography.size.xs,
+    marginTop: 8,
   },
   submitBtn: {
     backgroundColor: colors.green,
