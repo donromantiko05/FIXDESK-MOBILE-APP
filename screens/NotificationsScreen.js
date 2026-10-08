@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import EmptyState from '../components/EmptyState';
 import useNotifications from '../hooks/useNotifications';
@@ -79,6 +80,7 @@ const formatNotificationTime = (timestamp) => {
 };
 
 export default function NotificationsScreen({ navigation }) {
+  const { colors: themeColors } = useTheme();
   const { notifications, markAsRead, clearAll } = useNotifications();
   const [activeFilter, setActiveFilter] = useState('All');
 
@@ -115,9 +117,9 @@ export default function NotificationsScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <View style={styles.headerLeft}>
           {navigation.canGoBack() && (
             <TouchableOpacity
@@ -127,10 +129,10 @@ export default function NotificationsScreen({ navigation }) {
               accessibilityRole="button"
               accessibilityLabel="Go back"
             >
-              <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+              <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
             </TouchableOpacity>
           )}
-          <Text style={styles.headerTitle}>Notifications</Text>
+          <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Notifications</Text>
         </View>
 
         {notifications.length > 0 && (

@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import { PriorityBadge } from '../components/TicketCard';
 import useTickets from '../hooks/useTickets';
@@ -19,6 +20,7 @@ import { createNotification } from '../firebase/messaging';
 import { updateTechnician } from '../firebase/technicians';
 
 export default function TechQueueScreen({ navigation }) {
+  const { colors: themeColors } = useTheme();
   const { tickets } = useTickets();
   const { user, profile } = useAuth();
   const [techStatus, setTechStatus] = useState(profile?.availability || 'Available');
@@ -98,12 +100,12 @@ export default function TechQueueScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
       {/* Top Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Queue</Text>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>My Queue</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Profile and settings">
-          <Ionicons name="person-circle-outline" size={25} color={colors.textPrimary} />
+          <Ionicons name="person-circle-outline" size={25} color={themeColors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[

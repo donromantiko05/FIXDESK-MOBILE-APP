@@ -9,23 +9,25 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import TicketCard from '../components/TicketCard';
 import EmptyState from '../components/EmptyState';
 import useTickets from '../hooks/useTickets';
 
 export default function EmployeeHomeScreen({ navigation }) {
+  const { colors: themeColors } = useTheme();
   const { tickets, loading, refresh } = useTickets();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.logoTitle}>FIXDESK</Text>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+        <Text style={[styles.logoTitle, { color: themeColors.textPrimary }]}>FIXDESK</Text>
         <TouchableOpacity style={styles.profileShortcut} onPress={() => navigation.navigate('Profile')} hitSlop={12} accessibilityRole="button" accessibilityLabel="Profile">
-          <Ionicons name="person-circle-outline" size={25} color={colors.textPrimary} />
+          <Ionicons name="person-circle-outline" size={25} color={themeColors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Notifications')} hitSlop={12} accessibilityRole="button" accessibilityLabel="Notifications">
-          <Ionicons name="notifications-outline" size={24} color={colors.textPrimary} />
+          <Ionicons name="notifications-outline" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}>
@@ -36,7 +38,7 @@ export default function EmployeeHomeScreen({ navigation }) {
           </View>
           <View style={styles.cameraCircle}><Ionicons name="camera" size={24} color={colors.white} /></View>
         </TouchableOpacity>
-        <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>My Tickets</Text></View>
+        <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>My Tickets</Text></View>
         {tickets.length === 0 ? (
           <EmptyState icon="ticket-outline" title="No tickets yet" message="Tap 'Report a Problem' to submit your first facilities request." />
         ) : (

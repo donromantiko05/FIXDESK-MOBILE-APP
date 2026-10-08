@@ -4,8 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
 import Button from '../components/Button';
+import useTheme from '../contexts/ThemeContext';
 
 export default function TicketSubmittedScreen({ navigation, route }) {
+  const { colors: themeColors } = useTheme();
   const ticket = route?.params?.ticket || {
     id: 'temp',
     code: 'TCK-2101',
@@ -21,21 +23,21 @@ export default function TicketSubmittedScreen({ navigation, route }) {
   const ticketCode = ticket.code || 'TCK-2101';
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]}>
       <View style={styles.container}>
         {/* Green Checkmark Circle */}
         <View style={styles.iconCircle}>
-          <Ionicons name="checkmark" size={32} color={colors.green} />
+          <Ionicons name="checkmark" size={32} color={themeColors.green} />
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Ticket Created</Text>
+        <Text style={[styles.title, { color: themeColors.textPrimary }]}>Ticket Created</Text>
 
         {/* Ticket Code */}
         <Text style={styles.code}>{ticketCode}</Text>
 
         {/* Description */}
-        <Text style={styles.description}>
+        <Text style={[styles.description, { color: themeColors.textSecondary }]}>
           Priority is being evaluated automatically. You'll be notified once a
           technician is assigned.
         </Text>

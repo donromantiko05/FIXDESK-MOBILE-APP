@@ -2,6 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
+import useTheme from '../contexts/ThemeContext';
 
 export default function EmptyState({
   icon = 'file-tray-outline',
@@ -9,13 +10,14 @@ export default function EmptyState({
   message = '',
   action = null,
 }) {
+  const { colors: themeColors } = useTheme();
   return (
     <View style={styles.container}>
       <View style={styles.iconCircle}>
-        <Ionicons name={icon} size={36} color={colors.placeholder} />
+        <Ionicons name={icon} size={36} color={themeColors.placeholder} />
       </View>
-      <Text style={styles.title}>{title}</Text>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
+      <Text style={[styles.title, { color: themeColors.textPrimary }]}>{title}</Text>
+      {message ? <Text style={[styles.message, { color: themeColors.textSecondary }]}>{message}</Text> : null}
       {action ? <View style={styles.action}>{action}</View> : null}
     </View>
   );

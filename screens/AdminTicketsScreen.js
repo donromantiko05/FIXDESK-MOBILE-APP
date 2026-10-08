@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import TicketCard from '../components/TicketCard';
 import EmptyState from '../components/EmptyState';
@@ -11,6 +12,7 @@ import { updateTicket } from '../firebase/tickets';
 import { createNotification } from '../firebase/messaging';
 
 export default function AdminTicketsScreen({ navigation }) {
+  const { colors: themeColors } = useTheme();
   const { tickets, loading } = useTickets();
   const [technicians, setTechnicians] = useState([]);
   const [assigning, setAssigning] = useState('');
@@ -63,9 +65,9 @@ export default function AdminTicketsScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}><Text style={styles.headerTitle}>Tickets</Text><Text style={styles.count}>{tickets.length}</Text></View>
-      {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> :
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}><Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Tickets</Text><Text style={[styles.count, { color: themeColors.textSecondary }]}>{tickets.length}</Text></View>
+      {loading ? <ActivityIndicator style={styles.loader} color={themeColors.primary} /> :
         <FlatList data={tickets} keyExtractor={(item) => item.id || item.code} renderItem={renderTicket} contentContainerStyle={tickets.length ? styles.list : styles.empty} ListEmptyComponent={<EmptyState icon="ticket-outline" title="No tickets yet" message="Submitted tickets will appear here." />} />}
     </SafeAreaView>
   );

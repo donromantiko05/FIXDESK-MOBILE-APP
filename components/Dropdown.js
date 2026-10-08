@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
+import useTheme from '../contexts/ThemeContext';
  
 // Labeled dropdown. Tap the box to open a list, tap an option to select it.
 // options: array of strings. onSelect gets the chosen string.
@@ -23,20 +24,21 @@ export default function Dropdown({
   placeholder = 'Select',
 }) {
   const [open, setOpen] = useState(false);
+  const { colors: themeColors, isDark } = useTheme();
  
   return (
     <View style={styles.wrapper}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={[styles.label, { color: themeColors.textSecondary }]}>{label}</Text> : null}
  
       <TouchableOpacity
-        style={styles.box}
+        style={[styles.box, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}
         onPress={() => setOpen(true)}
         activeOpacity={0.8}
       >
-        <Text style={[styles.value, !value && styles.placeholder]}>
+        <Text style={[styles.value, { color: value ? themeColors.textPrimary : themeColors.placeholder }]}>
           {value || placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+        <Ionicons name="chevron-down" size={20} color={themeColors.textSecondary} />
       </TouchableOpacity>
  
       <Modal
@@ -46,10 +48,10 @@ export default function Dropdown({
         onRequestClose={() => setOpen(false)}
       >
         {/* Tapping the dark area closes the list */}
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+        <Pressable style={[styles.backdrop, { backgroundColor: isDark ? 'rgba(0, 0, 0, 0.65)' : 'rgba(26, 34, 51, 0.45)' }]} onPress={() => setOpen(false)}>
           {/* Empty onPress stops taps on the list from closing it */}
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <Text style={styles.sheetTitle}>{label}</Text>
+          <Pressable style={[styles.sheet, { backgroundColor: themeColors.surface }]} onPress={() => {}}>
+            <Text style={[styles.sheetTitle, { color: themeColors.textPrimary }]}>{label}</Text>
             <FlatList
               data={options}
               keyExtractor={(item) => item}
@@ -64,13 +66,14 @@ export default function Dropdown({
                   <Text
                     style={[
                       styles.optionText,
+                      { color: item === value ? themeColors.primary : themeColors.textPrimary },
                       item === value && styles.optionSelected,
                     ]}
                   >
                     {item}
                   </Text>
                   {item === value && (
-                    <Ionicons name="checkmark" size={20} color={colors.primary} />
+                    <Ionicons name="checkmark" size={20} color={themeColors.primary} />
                   )}
                 </TouchableOpacity>
               )}

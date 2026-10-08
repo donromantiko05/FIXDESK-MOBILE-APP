@@ -2,6 +2,7 @@ import { Alert, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View, use
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import useTickets from '../hooks/useTickets';
 
@@ -13,6 +14,7 @@ const dateValue = (value) => {
 };
 
 function AdminNav({ navigation, active }) {
+  const { colors: themeColors } = useTheme();
   const items = [
     ['Overview', 'grid-outline'],
     ['AdminTickets', 'ticket-outline', 'Tickets'],
@@ -20,25 +22,25 @@ function AdminNav({ navigation, active }) {
     ['Equip', 'construct-outline'],
   ];
   return (
-    <View style={styles.bottomBar}>
+    <View style={[styles.bottomBar, { backgroundColor: themeColors.surface, borderTopColor: themeColors.border }]}>
       {items.map(([tab, icon, label = tab]) => (
         <TouchableOpacity key={tab} style={styles.tab} onPress={() => navigation.navigate('Main', { screen: tab })}>
-          <Ionicons name={icon} size={18} color={tab === active ? colors.purple : colors.textSecondary} />
-          <Text style={[styles.tabLabel, tab === active && styles.activeTab]}>{label}</Text>
+          <Ionicons name={icon} size={18} color={tab === active ? themeColors.purple : themeColors.textSecondary} />
+          <Text style={[styles.tabLabel, { color: tab === active ? themeColors.purple : themeColors.textSecondary }, tab === active && styles.activeTab]}>{label}</Text>
         </TouchableOpacity>
       ))}
     </View>
   );
 }
 
-function StatCard({ label, value }) {
-  return <View style={styles.statCard}><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue}>{value}</Text></View>;
+function StatCard({ label, value, colors: themeColors }) {
+  return <View style={[styles.statCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}><Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>{label}</Text><Text style={[styles.statValue, { color: themeColors.textPrimary }]}>{value}</Text></View>;
 }
 
-function CategoryBar({ name, percent, index }) {
+function CategoryBar({ name, percent, index, colors: themeColors }) {
   return (
     <View style={styles.categoryRow}>
-      <View style={styles.categoryLabels}><Text style={styles.categoryName}>{name}</Text><Text style={styles.percent}>{percent}%</Text></View>
+      <View style={styles.categoryLabels}><Text style={[styles.categoryName, { color: themeColors.textSecondary }]}>{name}</Text><Text style={[styles.percent, { color: themeColors.textSecondary }]}>{percent}%</Text></View>
       <View style={styles.track}><View style={[styles.fill, { width: percent + '%', backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }]} /></View>
     </View>
   );
@@ -69,6 +71,7 @@ function TrendChart({ width, values }) {
 }
 
 export default function ReportsScreen({ navigation }) {
+  const { colors: themeColors } = useTheme();
   const { tickets = [] } = useTickets();
   const { width: windowWidth } = useWindowDimensions();
   const resolvedTickets = tickets.filter((ticket) => ['completed', 'resolved'].includes(String(ticket.status).toLowerCase()));
@@ -118,27 +121,27 @@ export default function ReportsScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Reports</Text>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Reports</Text>
         <TouchableOpacity onPress={() => navigation.navigate('PriorityRules')} accessibilityRole="button" accessibilityLabel="Open priority rules">
-          <Ionicons name="options-outline" size={21} color={colors.textPrimary} />
+          <Ionicons name="options-outline" size={21} color={themeColors.textPrimary} />
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.overviewHeading}><Text style={styles.sectionTitle}>Overview</Text><Text style={styles.period}>This Week</Text></View>
+        <View style={styles.overviewHeading}><Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Overview</Text><Text style={styles.period}>This Week</Text></View>
         <View style={styles.statsGrid}>
-          <StatCard label="Resolved" value={resolved} />
-          <StatCard label="Avg Res. Time" value={avgResolution} />
-          <StatCard label="First Response" value={avgResponse} />
-          <StatCard label="Satisfaction" value={satisfaction} />
+          <StatCard colors={themeColors} label="Resolved" value={resolved} />
+          <StatCard colors={themeColors} label="Avg Res. Time" value={avgResolution} />
+          <StatCard colors={themeColors} label="First Response" value={avgResponse} />
+          <StatCard colors={themeColors} label="Satisfaction" value={satisfaction} />
         </View>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Tickets by Category</Text>
-          {categoryData.length ? categoryData.map((item, index) => <CategoryBar key={item.name} name={item.name} percent={item.percent} index={index} />) : <Text style={styles.noData}>No ticket categories recorded yet.</Text>}
+        <View style={[styles.card, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+          <Text style={[styles.cardTitle, { color: themeColors.textPrimary }]}>Tickets by Category</Text>
+          {categoryData.length ? categoryData.map((item, index) => <CategoryBar colors={themeColors} key={item.name} name={item.name} percent={item.percent} index={index} />) : <Text style={[styles.noData, { color: themeColors.textSecondary }]}>No ticket categories recorded yet.</Text>}
         </View>
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Resolution Trend</Text>
+        <View style={[styles.card, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+          <Text style={[styles.cardTitle, { color: themeColors.textPrimary }]}>Resolution Trend</Text>
           <TrendChart width={windowWidth - 56} values={trendValues} />
         </View>
         <TouchableOpacity style={styles.exportButton} onPress={exportReport} accessibilityRole="button">
@@ -152,33 +155,33 @@ export default function ReportsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  header: { height: 48, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
+  header: { height: 56, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18 },
   headerTitle: { fontSize: typography.size.md, fontWeight: typography.weight.bold, color: colors.textPrimary },
-  content: { paddingHorizontal: 11, paddingTop: 10, paddingBottom: 14 },
-  overviewHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  sectionTitle: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.textPrimary },
-  period: { fontSize: 9, color: colors.purple, fontWeight: typography.weight.semibold },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 5 },
-  statCard: { width: '48.5%', height: 42, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5, marginBottom: 5 },
-  statLabel: { fontSize: 8, color: colors.textSecondary },
-  noData: { fontSize: 9, color: colors.textSecondary, paddingVertical: 8 },
-  statValue: { fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.textPrimary, marginTop: 1 },
-  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 9, marginTop: 7 },
-  cardTitle: { fontSize: 9, color: colors.textPrimary, fontWeight: typography.weight.bold, marginBottom: 8 },
-  categoryRow: { marginBottom: 5 },
+  content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20 },
+  overviewHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  sectionTitle: { fontSize: typography.size.md, fontWeight: typography.weight.bold, color: colors.textPrimary },
+  period: { fontSize: typography.size.xs, color: colors.purple, fontWeight: typography.weight.semibold },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 8 },
+  statCard: { width: '48.5%', minHeight: 76, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 8 },
+  statLabel: { fontSize: typography.size.xs, color: colors.textSecondary },
+  noData: { fontSize: typography.size.xs, color: colors.textSecondary, paddingVertical: 10 },
+  statValue: { fontSize: typography.size.lg, fontWeight: typography.weight.bold, color: colors.textPrimary, marginTop: 5 },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, marginTop: 10 },
+  cardTitle: { fontSize: typography.size.sm, color: colors.textPrimary, fontWeight: typography.weight.bold, marginBottom: 12 },
+  categoryRow: { marginBottom: 9 },
   categoryLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
-  categoryName: { fontSize: 8, color: colors.textSecondary },
-  percent: { fontSize: 8, color: colors.textSecondary },
-  track: { height: 4, backgroundColor: '#E6EAF0', borderRadius: 2, overflow: 'hidden' },
+  categoryName: { fontSize: typography.size.xs, color: colors.textSecondary },
+  percent: { fontSize: typography.size.xs, color: colors.textSecondary },
+  track: { height: 5, backgroundColor: '#E6EAF0', borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 2 },
   chart: { marginTop: 2, position: 'relative', justifyContent: 'center' },
   gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#E9ECF1' },
   trendLine: { position: 'absolute', height: 2, backgroundColor: colors.purple, transformOrigin: 'left center' },
   point: { position: 'absolute', width: 4, height: 4, borderRadius: 2, backgroundColor: colors.purple },
-  exportButton: { height: 32, borderRadius: 6, backgroundColor: colors.purple, alignItems: 'center', justifyContent: 'center', marginTop: 9 },
-  exportText: { fontSize: 9, color: colors.textPrimary, fontWeight: typography.weight.bold },
-  bottomBar: { height: 44, flexDirection: 'row', backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border },
+  exportButton: { height: 46, borderRadius: 8, backgroundColor: colors.purple, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  exportText: { fontSize: typography.size.sm, color: colors.textPrimary, fontWeight: typography.weight.bold },
+  bottomBar: { height: 58, flexDirection: 'row', backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
-  tabLabel: { fontSize: 8, color: colors.textSecondary },
+  tabLabel: { fontSize: 11, color: colors.textSecondary },
   activeTab: { color: colors.purple, fontWeight: typography.weight.semibold },
 });

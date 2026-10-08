@@ -23,17 +23,34 @@
           "cameraPermission": "Allow Fixdesk to take ticket photos.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-notifications"
     ],
-    "ios": { "supportsTablet": true },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.donromantiko.fixdesk"
+    },
     "android": {
+      "package": "com.donromantiko.fixdesk",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "51b32e06-52ab-4963-af3f-8bd5a53c7c84"
       }
     },
-    "web": { "favicon": "./assets/favicon.png" }
+    "owner": "donromantiko"
   }
 }

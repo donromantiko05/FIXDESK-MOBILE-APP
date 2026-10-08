@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
 import useAuth from '../hooks/useAuth';
+import useTheme from '../contexts/ThemeContext';
 
 // Admin screens
 import AdminOverviewScreen from '../screens/AdminOverviewScreen';
@@ -45,18 +46,19 @@ const ICONS = {
 
 export default function TabNavigator() {
   const { role, isAdmin } = useAuth();
+  const { colors: themeColors } = useTheme();
   const isTechnician = role === 'technician';
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.placeholder,
+        tabBarActiveTintColor: themeColors.primary,
+        tabBarInactiveTintColor: themeColors.textSecondary,
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: themeColors.surface,
+          borderTopColor: themeColors.border,
           height: 60,
           paddingBottom: 8,
           paddingTop: 6,

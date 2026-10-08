@@ -18,6 +18,7 @@ import { createNotification } from '../firebase/messaging';
 import { updateTicket } from '../firebase/tickets';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
+import useTheme from '../contexts/ThemeContext';
 
 const STATUS_OPTIONS = [
   'In Progress',
@@ -27,6 +28,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function TechStatusScreen({ navigation, route }) {
+  const { colors: themeColors } = useTheme();
   const ticketCode = route?.params?.ticketCode || 'TCK-2091';
   const defaultStatus = route?.params?.defaultStatus || 'In Progress';
 
@@ -111,7 +113,7 @@ export default function TechStatusScreen({ navigation, route }) {
         style={styles.keyboardWrap}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <SafeAreaView style={styles.safeSheet} edges={['bottom']}>
+        <SafeAreaView style={[styles.safeSheet, { backgroundColor: themeColors.surface }]} edges={['bottom']}>
           {/* Top handle pill */}
           <View style={styles.handleBar} />
 
@@ -121,8 +123,8 @@ export default function TechStatusScreen({ navigation, route }) {
           >
             {/* Header */}
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Update Status</Text>
-              <Text style={styles.ticketCode}>{ticketCode}</Text>
+              <Text style={[styles.sheetTitle, { color: themeColors.textPrimary }]}>Update Status</Text>
+              <Text style={[styles.ticketCode, { color: themeColors.textSecondary }]}>{ticketCode}</Text>
             </View>
 
             {/* Radio options container */}

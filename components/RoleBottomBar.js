@@ -1,6 +1,7 @@
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 
 const ROLE_TABS = {
   employee: [
@@ -25,10 +26,11 @@ const ROLE_TABS = {
 };
 
 export default function RoleBottomBar({ role, activeTab, navigation }) {
+  const { colors: themeColors } = useTheme();
   const tabs = ROLE_TABS[role] || ROLE_TABS.employee;
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { backgroundColor: themeColors.surface, borderTopColor: themeColors.border }]}>
       {tabs.map(([route, icon, label]) => {
         const active = route === activeTab;
         const activeIcon = active ? icon.replace('-outline', '') : icon;
@@ -40,8 +42,8 @@ export default function RoleBottomBar({ role, activeTab, navigation }) {
             accessibilityRole="button"
             accessibilityLabel={label}
           >
-            <Ionicons name={activeIcon} size={19} color={active ? colors.primary : colors.textSecondary} />
-            <Text style={[styles.label, active && styles.activeLabel]}>{label}</Text>
+            <Ionicons name={activeIcon} size={19} color={active ? themeColors.primary : themeColors.textSecondary} />
+            <Text style={[styles.label, { color: active ? themeColors.primary : themeColors.textSecondary }, active && styles.activeLabel]}>{label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -51,7 +53,7 @@ export default function RoleBottomBar({ role, activeTab, navigation }) {
 
 const styles = StyleSheet.create({
   bar: {
-    height: 48,
+    height: 58,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -59,6 +61,6 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
-  label: { fontSize: 8, color: colors.textSecondary },
+  label: { fontSize: 11, color: colors.textSecondary },
   activeLabel: { color: colors.primary, fontWeight: '600' },
 });

@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import { PriorityBadge } from '../components/TicketCard';
 import Timeline from '../components/Timeline';
@@ -31,6 +32,7 @@ const DEFAULT_TIMELINE = [
 ];
 
 export default function TicketDetailScreen({ navigation, route }) {
+  const { colors: themeColors } = useTheme();
   const paramTicket = route?.params?.ticket;
   const paramId = route?.params?.id;
 
@@ -71,9 +73,9 @@ export default function TicketDetailScreen({ navigation, route }) {
   const timeline = ticket.timeline && ticket.timeline.length ? ticket.timeline : DEFAULT_TIMELINE;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={12}
@@ -81,45 +83,45 @@ export default function TicketDetailScreen({ navigation, route }) {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ticket Detail</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Ticket Detail</Text>
         <View style={styles.headerRightSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Ticket Info Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.title} numberOfLines={2}>
+            <Text style={[styles.title, { color: themeColors.textPrimary }]} numberOfLines={2}>
               {displayTitle}
             </Text>
             <PriorityBadge level={ticket.priority || 'medium'} />
           </View>
 
           <View style={styles.codeRow}>
-            <Text style={styles.code}>{ticket.code || 'TCK-2091'}</Text>
-            <Text style={styles.filedDate}>
+            <Text style={[styles.code, { color: themeColors.primary }]}>{ticket.code || 'TCK-2091'}</Text>
+            <Text style={[styles.filedDate, { color: themeColors.textSecondary }]}>
               {ticket.filedDate ? `Filed ${ticket.filedDate}` : 'Filed recently'}
             </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
 
           <View style={styles.detailsTable}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Category</Text>
-              <Text style={styles.detailValue}>{ticket.category || 'HVAC'}</Text>
+              <Text style={[styles.detailLabel, { color: themeColors.textSecondary }]}>Category</Text>
+              <Text style={[styles.detailValue, { color: themeColors.textPrimary }]}>{ticket.category || 'HVAC'}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Location</Text>
-              <Text style={styles.detailValue}>
+              <Text style={[styles.detailLabel, { color: themeColors.textSecondary }]}>Location</Text>
+              <Text style={[styles.detailValue, { color: themeColors.textPrimary }]}>
                 {ticket.location || 'Fl. 3, East Wing'}
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Reporter</Text>
-              <Text style={styles.detailValue}>
+              <Text style={[styles.detailLabel, { color: themeColors.textSecondary }]}>Reporter</Text>
+              <Text style={[styles.detailValue, { color: themeColors.textPrimary }]}>
                 {ticket.reporter || 'Maria Reyes (Accounting)'}
               </Text>
             </View>
@@ -128,7 +130,7 @@ export default function TicketDetailScreen({ navigation, route }) {
 
         {/* Photos Section */}
         <View style={styles.photosSection}>
-          <Text style={styles.sectionHeaderTitle}>
+          <Text style={[styles.sectionHeaderTitle, { color: themeColors.textPrimary }]}>
             PHOTOS ({photos.length})
           </Text>
           {photos.length > 0 ? (
@@ -151,14 +153,14 @@ export default function TicketDetailScreen({ navigation, route }) {
                 size={20}
                 color={colors.placeholder}
               />
-              <Text style={styles.noPhotosText}>No photos attached</Text>
+              <Text style={[styles.noPhotosText, { color: themeColors.textSecondary }]}>No photos attached</Text>
             </View>
           )}
         </View>
 
         {/* Work Progress Section */}
         <View style={styles.progressCard}>
-          <Text style={styles.progressTitle}>Work Progress</Text>
+          <Text style={[styles.progressTitle, { color: themeColors.textPrimary }]}>Work Progress</Text>
           <Timeline steps={timeline} />
         </View>
       </ScrollView>

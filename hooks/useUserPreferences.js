@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { DEFAULT_PREFERENCES, normalizePreferences } from '../firebase/preferences';
 
-export default function useUserPreferences() {
-  const uid = auth.currentUser?.uid || null;
+function usePreferencesState() {
+  const [uid, setUid] = useState(auth.currentUser?.uid || null);
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [syncError, setSyncError] = useState('');
 
+  useEffect(() => onAuthStateChanged(auth, (user) => setUid(user?.uid || null)), []);
+
   useEffect(() => {
+    setPreferences(DEFAULT_PREFERENCES);
     if (!uid) return undefined;
     let mounted = true;
     const storageKey = 'fixdesk.preferences.' + uid;
@@ -62,4 +66,17 @@ export default function useUserPreferences() {
   }, [preferences, uid]);
 
   return { preferences, setPreference, syncError };
+}
+
+export const UserPreferencesContext = createContext(null);
+
+export function UserPreferencesProvider({ children }) {
+  const value = usePreferencesState();
+  return <UserPreferencesContext.Provider value={value}>{children}</UserPreferencesContext.Provider>;
+}
+
+export default function useUserPreferences() {
+  const context = useContext(UserPreferencesContext);
+  if (!context) throw new Error('useUserPreferences must be used inside UserPreferencesProvider.');
+  return context;
 }

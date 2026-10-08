@@ -1,0 +1,173 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(userDoc(request.auth.uid))
+        && get(userDoc(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isTechnician() {
+      return signedIn()
+        && exists(userDoc(request.auth.uid))
+        && get(userDoc(request.auth.uid)).data.role == 'technician';
+    }
+
+    match /users/{userId} {
+      allow get: if signedIn()
+        && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'employee'
+        && request.resource.data.keys().hasAll([
+          'fullName', 'email', 'department', 'role', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fullName', 'email', 'department', 'role', 'createdAt'
+        ]);
+
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && request.auth.uid == userId
+          && (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['preferences'])
+            || (
+              resource.data.role == 'technician'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['availability'])
+            )
+          )
+        );
+
+      allow delete: if isAdmin();
+
+      match /pushTokens/{tokenId} {
+        allow read: if false;
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt'])
+          && request.resource.data.token is string
+          && request.resource.data.platform in ['ios', 'android'];
+        allow delete: if signedIn() && request.auth.uid == userId;
+      }
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if signedIn()
+        && (
+          isAdmin()
+          || resource.data.reporterId == request.auth.uid
+          || (isTechnician() && resource.data.assignedTo == request.auth.uid)
+        );
+
+      allow create: if signedIn()
+        && get(userDoc(request.auth.uid)).data.role == 'employee'
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == 'evaluating'
+        && request.resource.data.code is string;
+
+      allow update: if isAdmin()
+        || (
+          isTechnician()
+          && resource.data.assignedTo == request.auth.uid
+          && request.resource.data.assignedTo == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'status', 'assignedTo', 'assignedTechnician', 'acceptedAt',
+              'firstResponseHours', 'workLog', 'completionPhotos',
+              'completedAt', 'updatedAt', 'timeline'
+            ])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /equipment/{equipmentId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read, delete: if signedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.unread == false
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['unread', 'readAt']);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'title', 'description', 'isTicket', 'ticketCode',
+          'ticketId', 'icon', 'unread', 'createdAt'
+        ])
+        && request.resource.data.unread == true
+        && (
+          request.resource.data.userId == request.auth.uid
+          || isAdmin()
+          || (
+            isTechnician()
+            && request.resource.data.ticketId is string
+            && exists(/databases/$(database)/documents/tickets/$(request.resource.data.ticketId))
+            && get(/databases/$(database)/documents/tickets/$(request.resource.data.ticketId)).data.assignedTo == request.auth.uid
+            && get(/databases/$(database)/documents/tickets/$(request.resource.data.ticketId)).data.reporterId == request.resource.data.userId
+          )
+        );
+    }
+
+    match /conversations/{ticketId} {
+      function isParticipant() {
+        return signedIn()
+          && (isAdmin() || resource.data.employeeId == request.auth.uid
+            || resource.data.technicianId == request.auth.uid);
+      }
+
+      allow read: if isParticipant();
+      allow create: if isAdmin()
+        && request.resource.data.ticketId == ticketId
+        && exists(/databases/$(database)/documents/tickets/$(ticketId))
+        && request.resource.data.employeeId == get(/databases/$(database)/documents/tickets/$(ticketId)).data.reporterId
+        && request.resource.data.technicianId == get(/databases/$(database)/documents/tickets/$(ticketId)).data.assignedTo;
+      allow update: if isParticipant()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['lastMessage', 'lastMessageAt', 'updatedAt']);
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        function isConversationParticipant() {
+          let conversation = get(/databases/$(database)/documents/conversations/$(ticketId)).data;
+          return signedIn()
+            && (isAdmin() || conversation.employeeId == request.auth.uid
+              || conversation.technicianId == request.auth.uid);
+        }
+
+        allow read: if isConversationParticipant();
+        allow create: if isConversationParticipant()
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.createdAt is timestamp;
+        allow update, delete: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

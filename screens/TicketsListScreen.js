@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import TicketCard from '../components/TicketCard';
 import EmptyState from '../components/EmptyState';
@@ -19,6 +20,7 @@ import useTickets from '../hooks/useTickets';
 const FILTERS = ['All', 'Open', 'In Progress', 'Completed'];
 
 export default function TicketsListScreen({ navigation }) {
+  const { colors: themeColors } = useTheme();
   const { tickets, loading, refresh } = useTickets();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
@@ -74,24 +76,24 @@ export default function TicketsListScreen({ navigation }) {
   }, [tickets, activeFilter, searchQuery, sortDesc]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
       {/* Title */}
-      <View style={styles.header}>
-        <Text style={styles.title}>My Tickets</Text>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+        <Text style={[styles.title, { color: themeColors.textPrimary }]}>My Tickets</Text>
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchBox}>
+      <View style={[styles.searchBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
         <Ionicons
           name="search-outline"
           size={18}
-          color={colors.placeholder}
+          color={themeColors.placeholder}
           style={styles.searchIcon}
         />
         <TextInput
           style={styles.searchInput}
           placeholder="Search tickets..."
-          placeholderTextColor={colors.placeholder}
+          placeholderTextColor={themeColors.placeholder}
           value={searchQuery}
           onChangeText={setSearchQuery}
           clearButtonMode="while-editing"

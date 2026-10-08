@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import { subscribeTechnicians, updateTechnician } from '../firebase/technicians';
 
 export default function TechniciansScreen() {
+  const { colors: themeColors } = useTheme();
   const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,23 +31,23 @@ export default function TechniciansScreen() {
   const renderTechnician = ({ item }) => {
     const available = (item.availability || 'Available') === 'Available';
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
         <View style={styles.avatar}><Text style={styles.avatarText}>{(item.fullName || item.email || 'T').slice(0, 1).toUpperCase()}</Text></View>
         <View style={styles.details}>
-          <Text style={styles.name}>{item.fullName || 'Technician'}</Text>
-          <Text style={styles.email}>{item.email || 'No email on file'}</Text>
+          <Text style={[styles.name, { color: themeColors.textPrimary }]}>{item.fullName || 'Technician'}</Text>
+          <Text style={[styles.email, { color: themeColors.textSecondary }]}>{item.email || 'No email on file'}</Text>
           <Text style={[styles.status, available ? styles.available : styles.busy]}>{item.availability || 'Available'}</Text>
         </View>
-        <Switch value={available} onValueChange={(value) => setAvailability(item, value)} trackColor={{ false: colors.border, true: colors.green }} thumbColor={colors.white} />
+        <Switch value={available} onValueChange={(value) => setAvailability(item, value)} trackColor={{ false: themeColors.border, true: themeColors.green }} thumbColor={themeColors.white} />
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}><Text style={styles.headerTitle}>Technicians</Text></View>
-      {loading ? <ActivityIndicator style={styles.loader} color={colors.primary} /> :
-        error ? <Text style={styles.emptyText}>{error}</Text> :
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}><Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Technicians</Text></View>
+      {loading ? <ActivityIndicator style={styles.loader} color={themeColors.primary} /> :
+        error ? <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>{error}</Text> :
         <FlatList data={technicians} keyExtractor={(item) => item.id} renderItem={renderTechnician} contentContainerStyle={technicians.length ? styles.list : styles.empty} ListEmptyComponent={<Text style={styles.emptyText}>No technician accounts yet. Set a user's role to technician in their Firebase profile to add them here.</Text>} />}
     </SafeAreaView>
   );

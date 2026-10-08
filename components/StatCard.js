@@ -1,12 +1,14 @@
 import { View, Text, StyleSheet } from 'react-native';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
+import useTheme from '../contexts/ThemeContext';
 
 export default function StatCard({ label, value, danger, style }) {
+  const { colors: themeColors } = useTheme();
   return (
-    <View style={[styles.statCard, style]}>
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, danger && { color: colors.danger }]}>
+    <View style={[styles.statCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, style]}>
+      <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: danger ? themeColors.danger : themeColors.textPrimary }]}>
         {value}
       </Text>
     </View>

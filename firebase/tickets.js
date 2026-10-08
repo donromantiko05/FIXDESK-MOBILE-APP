@@ -221,6 +221,8 @@ export const createTicket = async (ticketData) => {
     status: ticketData.status || 'evaluating',
     reporter: ticketData.reporter || 'Current User',
     reporterId: ticketData.reporterId || null,
+    equipmentId: ticketData.equipmentId || null,
+    equipmentName: ticketData.equipmentName || null,
     filedDate: dateStr,
     photos: ticketData.photos || [],
     priorityScore: ticketData.priorityScore ?? null,

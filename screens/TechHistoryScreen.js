@@ -9,10 +9,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import { PriorityBadge } from '../components/TicketCard';
 
 export default function TechHistoryScreen({ navigation, route }) {
+  const { colors: themeColors } = useTheme();
   const paramTicket = route?.params?.ticket;
 
   const [ticket] = useState(
@@ -42,9 +44,9 @@ export default function TechHistoryScreen({ navigation, route }) {
   ];
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
       {/* Top Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={8}
@@ -52,54 +54,66 @@ export default function TechHistoryScreen({ navigation, route }) {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ticket Detail</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Ticket Detail</Text>
         <View style={styles.headerRightSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Ticket Summary Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.ticketTitle} numberOfLines={1}>
+              <Text style={[styles.ticketTitle, { color: themeColors.textPrimary }]} numberOfLines={1}>
               {ticket.title || 'AC not cooling — Fl. 3 east...'}
             </Text>
             <PriorityBadge level={ticket.priority || 'high'} />
           </View>
 
           <View style={styles.cardCodeRow}>
-            <Text style={styles.ticketCode}>{ticket.code || 'TCK-2091'}</Text>
-            <Text style={styles.filedDate}>
+            <Text style={[styles.ticketCode, { color: themeColors.primary }]}>{ticket.code || 'TCK-2091'}</Text>
+            <Text style={[styles.filedDate, { color: themeColors.textSecondary }]}>
               Filed {ticket.filedDate || 'Sep 9, 2026'}
             </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
 
           <View style={styles.metaTable}>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Category</Text>
-              <Text style={styles.metaValue}>{ticket.category || 'HVAC'}</Text>
+              <Text style={[styles.metaLabel, { color: themeColors.textSecondary }]}>Category</Text>
+              <Text style={[styles.metaValue, { color: themeColors.textPrimary }]}>{ticket.category || 'HVAC'}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Location</Text>
-              <Text style={styles.metaValue}>
+              <Text style={[styles.metaLabel, { color: themeColors.textSecondary }]}>Location</Text>
+              <Text style={[styles.metaValue, { color: themeColors.textPrimary }]}>
                 {ticket.location || 'Fl. 3, East Wing'}
               </Text>
             </View>
+            {ticket.equipmentName ? <View style={styles.metaRow}>
+              <Text style={[styles.metaLabel, { color: themeColors.textSecondary }]}>Equipment</Text>
+              <Text style={[styles.metaValue, { color: themeColors.textPrimary }]}>{ticket.equipmentName}</Text>
+            </View> : null}
+            {ticket.equipmentId ? <View style={styles.metaRow}>
+              <Text style={[styles.metaLabel, { color: themeColors.textSecondary }]}>Asset ID</Text>
+              <Text style={[styles.metaValue, { color: themeColors.textPrimary }]}>{ticket.equipmentId}</Text>
+            </View> : null}
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Assigned Technician</Text>
-              <Text style={styles.metaValue}>
-                {ticket.technician || 'James Cruz'}
+              <Text style={[styles.metaLabel, { color: themeColors.textSecondary }]}>Assigned Technician</Text>
+              <Text style={[styles.metaValue, { color: themeColors.textPrimary }]}>
+                {ticket.assignedTechnician || ticket.technician || 'Not assigned'}
               </Text>
             </View>
           </View>
+          {ticket.description ? <View style={{ marginTop: 14 }}>
+            <Text style={[styles.metaLabel, { color: themeColors.textSecondary, marginBottom: 5 }]}>Problem Description</Text>
+            <Text style={[styles.metaValue, { color: themeColors.textPrimary, textAlign: 'left' }]}>{ticket.description}</Text>
+          </View> : null}
         </View>
 
         {/* Ticket Status Card */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Ticket Status</Text>
+        <View style={[styles.card, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Ticket Status</Text>
           <View style={styles.statusList}>
             {statusSteps.map((step, idx) => {
               const isCompleted = step.state === 'completed';
@@ -138,9 +152,9 @@ export default function TechHistoryScreen({ navigation, route }) {
 
         {/* Activity Section */}
         <View style={styles.activitySection}>
-          <Text style={styles.activityHeader}>Activity</Text>
+          <Text style={[styles.activityHeader, { color: themeColors.textPrimary }]}>Activity</Text>
           {activities.map((act, idx) => (
-            <Text key={idx} style={styles.activityItem}>
+            <Text key={idx} style={[styles.activityItem, { color: themeColors.textSecondary }]}>
               {act}
             </Text>
           ))}

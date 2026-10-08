@@ -6,6 +6,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from './config';
+import { removePushToken } from './pushTokens';
 
 // Sends the Firebase password reset email to the given address.
 export const resetPassword = (email) =>
@@ -23,6 +24,7 @@ export const signIn = async (email, password) => {
   const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
   const profile = await getUserProfile(cred.user.uid);
   if (!profile) {
+    await removePushToken(cred.user.uid).catch(() => {});
     await signOut(auth);
     const err = new Error('No profile found for this account.');
     err.code = 'app/no-profile';
@@ -52,7 +54,15 @@ export const signUp = async ({ fullName, email, department, password }) => {
   return { user: cred.user, profile: { id: cred.user.uid, ...profile } };
 };
 
-export const signOutUser = () => signOut(auth);
+export const signOutUser = async () => {
+  const userId = auth.currentUser?.uid;
+  if (userId) {
+    await removePushToken(userId).catch((error) => {
+      if (__DEV__) console.warn('Could not remove push token during sign out:', error?.message);
+    });
+  }
+  await signOut(auth);
+};
 
 // Turns a Firebase error into a message safe to show the user.
 export const getAuthErrorMessage = (error) => {

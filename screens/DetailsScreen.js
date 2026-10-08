@@ -6,6 +6,7 @@ import { PriorityBadge } from '../components/TicketCard';
 import { fetchTicketById, getTicketById } from '../firebase/tickets';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
+import useTheme from '../contexts/ThemeContext';
 
 const DEFAULT_TICKET = {
   id: '1',
@@ -63,6 +64,7 @@ function BottomTab({ icon, label, tab, active, navigation }) {
 }
 
 export default function DetailsScreen({ navigation, route }) {
+  const { colors: themeColors } = useTheme();
   const paramTicket = route?.params?.ticket;
   const paramId = route?.params?.id;
   const [ticket, setTicket] = useState(
@@ -102,8 +104,8 @@ export default function DetailsScreen({ navigation, route }) {
         .map((item) => item.subtitle);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={12}
@@ -111,9 +113,9 @@ export default function DetailsScreen({ navigation, route }) {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={23} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={23} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ticket Detail</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Ticket Detail</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -122,23 +124,29 @@ export default function DetailsScreen({ navigation, route }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.ticketCard}>
+        <View style={[styles.ticketCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           <View style={styles.titleRow}>
-            <Text style={styles.ticketTitle} numberOfLines={1}>{displayTitle}</Text>
+            <Text style={[styles.ticketTitle, { color: themeColors.textPrimary }]} numberOfLines={1}>{displayTitle}</Text>
             <PriorityBadge level={ticket.priority || 'medium'} />
           </View>
           <View style={styles.codeRow}>
-            <Text style={styles.ticketCode}>{ticket.code || ticket.id || 'TCK-2091'}</Text>
-            <Text style={styles.filedDate}>Filed {ticket.filedDate || 'recently'}</Text>
+            <Text style={[styles.ticketCode, { color: themeColors.primary }]}>{ticket.code || ticket.id || 'TCK-2091'}</Text>
+            <Text style={[styles.filedDate, { color: themeColors.textSecondary }]}>Filed {ticket.filedDate || 'recently'}</Text>
           </View>
-          <View style={styles.divider} />
-          <DetailRow label="Category" value={ticket.category || 'General'} />
-          <DetailRow label="Location" value={ticket.location || 'Not specified'} />
-          <DetailRow label="Assigned Technician" value={assignedTechnician} />
+          <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+          <DetailRow colors={themeColors} label="Category" value={ticket.category || 'General'} />
+          <DetailRow colors={themeColors} label="Location" value={ticket.location || 'Not specified'} />
+          {ticket.equipmentName ? <DetailRow colors={themeColors} label="Equipment" value={ticket.equipmentName} /> : null}
+          {ticket.equipmentId ? <DetailRow colors={themeColors} label="Asset ID" value={ticket.equipmentId} /> : null}
+          <DetailRow colors={themeColors} label="Assigned Technician" value={assignedTechnician} />
+          {ticket.description ? <View style={{ marginTop: 10 }}>
+            <Text style={[styles.detailLabel, { color: themeColors.textSecondary }]}>Problem Description</Text>
+            <Text style={{ color: themeColors.textPrimary, fontSize: typography.size.sm, marginTop: 5 }}>{ticket.description}</Text>
+          </View> : null}
         </View>
 
-        <View style={styles.statusCard}>
-          <Text style={styles.sectionTitle}>Ticket Status</Text>
+        <View style={[styles.statusCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Ticket Status</Text>
           {STEPS.map((step, index) => {
             const isDone = index < currentStep;
             const isCurrent = index === currentStep;
@@ -162,7 +170,7 @@ export default function DetailsScreen({ navigation, route }) {
         </View>
 
         <View style={styles.activitySection}>
-          <Text style={styles.sectionTitle}>Activity</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Activity</Text>
           {activity.length ? activity.map((item, index) => (
             <Text key={index} style={styles.activityText}>- {item}</Text>
           )) : (
@@ -182,11 +190,11 @@ export default function DetailsScreen({ navigation, route }) {
   );
 }
 
-function DetailRow({ label, value }) {
+function DetailRow({ label, value, colors: themeColors }) {
   return (
     <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue} numberOfLines={1}>{value}</Text>
+      <Text style={[styles.detailLabel, { color: themeColors.textSecondary }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: themeColors.textPrimary }]} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
@@ -232,13 +240,13 @@ const styles = StyleSheet.create({
   },
   codeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 7 },
   ticketCode: { fontSize: typography.size.xs, color: colors.primary, fontWeight: typography.weight.medium },
-  filedDate: { fontSize: 10, color: colors.textSecondary },
+  filedDate: { fontSize: typography.size.xs, color: colors.textSecondary },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
   detailRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 },
-  detailLabel: { fontSize: 10, color: colors.textSecondary },
+  detailLabel: { fontSize: typography.size.xs, color: colors.textSecondary },
   detailValue: {
     maxWidth: '62%',
-    fontSize: 10,
+    fontSize: typography.size.sm,
     fontWeight: typography.weight.medium,
     color: colors.textPrimary,
     textAlign: 'right',
@@ -262,11 +270,11 @@ const styles = StyleSheet.create({
   statusDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.border, marginRight: 9 },
   doneDot: { backgroundColor: colors.green },
   currentDot: { backgroundColor: colors.primary },
-  statusText: { fontSize: 10, color: colors.textPrimary },
+  statusText: { fontSize: typography.size.xs, color: colors.textPrimary },
   currentStatusText: { color: colors.primary, fontWeight: typography.weight.semibold },
   pendingStatusText: { color: colors.placeholder },
   activitySection: { paddingTop: 1 },
-  activityText: { fontSize: 10, color: colors.textSecondary, marginBottom: 5, lineHeight: 15 },
+  activityText: { fontSize: typography.size.xs, color: colors.textSecondary, marginBottom: 5, lineHeight: 18 },
   bottomBar: {
     height: 54,
     flexDirection: 'row',
@@ -278,6 +286,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  tabLabel: { fontSize: 9, color: colors.textSecondary },
+  tabLabel: { fontSize: 11, color: colors.textSecondary },
   activeTabLabel: { color: colors.primary, fontWeight: typography.weight.semibold },
 });

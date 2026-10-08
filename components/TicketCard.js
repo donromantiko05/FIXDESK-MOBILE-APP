@@ -3,10 +3,12 @@ import colors from '../constants/colors';
 import typography from '../constants/typography';
 import priority from '../constants/priority';
 import status from '../constants/status';
+import useTheme from '../contexts/ThemeContext';
  
 // One ticket row: title + priority badge, ticket id + status.
 // ticket = { id, code, title, priority, status }
 export default function TicketCard({ ticket = {}, onPress, accentBorder = false, style }) {
+  const { colors: themeColors } = useTheme();
   if (!ticket) return null;
   const p = priority[ticket.priority?.toLowerCase?.()] ?? priority[ticket.priority] ?? priority.medium;
   const s = status[ticket.status?.toLowerCase?.()] ?? status[ticket.status] ?? status.unassigned;
@@ -15,6 +17,7 @@ export default function TicketCard({ ticket = {}, onPress, accentBorder = false,
     <TouchableOpacity
       style={[
         styles.card,
+        { backgroundColor: themeColors.surface, borderColor: themeColors.border },
         accentBorder && { borderLeftWidth: 4, borderLeftColor: p.color },
         style,
       ]}
@@ -23,7 +26,7 @@ export default function TicketCard({ ticket = {}, onPress, accentBorder = false,
       accessibilityRole="button"
     >
       <View style={styles.row}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, { color: themeColors.textPrimary }]} numberOfLines={1}>
           {ticket.title}
         </Text>
         <View style={[styles.badge, { backgroundColor: p.background }]}>
@@ -32,10 +35,10 @@ export default function TicketCard({ ticket = {}, onPress, accentBorder = false,
         </View>
       </View>
       <View style={[styles.row, styles.bottom]}>
-        <Text style={styles.code}>{ticket.code}</Text>
+        <Text style={[styles.code, { color: themeColors.textSecondary }]}>{ticket.code}</Text>
         <View style={styles.statusWrap}>
           <View style={[styles.statusDot, { backgroundColor: s.color }]} />
-          <Text style={styles.status}>{s.label}</Text>
+          <Text style={[styles.status, { color: themeColors.textSecondary }]}>{s.label}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -43,6 +46,7 @@ export default function TicketCard({ ticket = {}, onPress, accentBorder = false,
 }
  
 export function PriorityBadge({ level }) {
+  const { colors: themeColors } = useTheme();
   const p = priority[level?.toLowerCase?.()] ?? priority[level] ?? priority.medium;
   return (
     <View style={[styles.badge, { backgroundColor: p.background }]}>

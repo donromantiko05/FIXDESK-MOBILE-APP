@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, Alert,
@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import Button from '../components/Button';
 import PhotoAttachment from '../components/PhotoAttachment';
@@ -18,13 +19,19 @@ import { auth } from '../firebase/config';
 const CATEGORIES = ['Electrical', 'Plumbing', 'HVAC', 'IT Equipment', 'Furniture', 'Other'];
 const STEPS = [{ id: 1, label: 'Category' }, { id: 2, label: 'Location' }, { id: 3, label: 'Details' }, { id: 4, label: 'Review' }];
 
-export default function NewTicketScreen({ navigation }) {
+export default function NewTicketScreen({ navigation, route }) {
+  const { colors: themeColors } = useTheme();
+  const equipment = route?.params?.equipment;
   const [selectedCategory, setSelectedCategory] = useState('Electrical');
-  const [location, setLocation] = useState('');
+  const [location, setLocation] = useState(equipment?.location || '');
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (equipment) setLocation(equipment.location || '');
+  }, [equipment?.assetId, equipment?.id]);
 
   const handleSubmit = async () => {
     if (loading) return;
@@ -52,6 +59,8 @@ export default function NewTicketScreen({ navigation }) {
         status: 'evaluating',
         reporter: auth.currentUser?.displayName || auth.currentUser?.email || 'Employee',
         reporterId: userId,
+        equipmentId: equipment?.assetId || equipment?.id || null,
+        equipmentName: equipment?.name || null,
         photos: photoUrls,
       });
 
@@ -76,12 +85,12 @@ export default function NewTicketScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={12} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Go back">
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Ticket</Text><View style={styles.headerRightSpacer} />
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>New Ticket</Text><View style={styles.headerRightSpacer} />
       </View>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -91,17 +100,18 @@ export default function NewTicketScreen({ navigation }) {
               return <View key={step.id} style={styles.stepItem}><View style={[styles.stepCircle, active ? styles.stepCircleActive : styles.stepCircleInactive]}><Text style={[styles.stepNum, active ? styles.stepNumActive : styles.stepNumInactive]}>{step.id}</Text></View><Text style={[styles.stepLabel, active ? styles.stepLabelActive : styles.stepLabelInactive]}>{step.label}</Text></View>;
             })}
           </View>
-          <Text style={styles.label}>Select Category</Text>
+          {equipment ? <Text style={[styles.label, { color: themeColors.primary }]}>Reporting a problem for {equipment.name} ({equipment.assetId || equipment.id})</Text> : null}
+          <Text style={[styles.label, { color: themeColors.textSecondary }]}>Select Category</Text>
           <View style={styles.categoryGrid}>
             {CATEGORIES.map((category) => {
               const selected = selectedCategory === category;
-              return <TouchableOpacity key={category} style={[styles.categoryBtn, selected && styles.categoryBtnSelected]} onPress={() => setSelectedCategory(category)}><Text style={[styles.categoryBtnText, selected && styles.categoryBtnTextSelected]}>{category}</Text></TouchableOpacity>;
+              return <TouchableOpacity key={category} style={[styles.categoryBtn, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, selected && styles.categoryBtnSelected]} onPress={() => setSelectedCategory(category)}><Text style={[styles.categoryBtnText, { color: themeColors.textPrimary }, selected && styles.categoryBtnTextSelected]}>{category}</Text></TouchableOpacity>;
             })}
           </View>
-          <Text style={styles.label}>Location / Area</Text>
-          <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="e.g. Fl. 3, East Wing" placeholderTextColor={colors.placeholder} />
-          <Text style={styles.label}>Problem Description</Text>
-          <TextInput style={styles.textArea} value={description} onChangeText={setDescription} placeholder="Describe the issue in detail..." placeholderTextColor={colors.placeholder} multiline numberOfLines={4} textAlignVertical="top" />
+          <Text style={[styles.label, { color: themeColors.textSecondary }]}>Location / Area</Text>
+          <TextInput style={[styles.input, { backgroundColor: themeColors.surface, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={location} onChangeText={setLocation} placeholder="e.g. Fl. 3, East Wing" placeholderTextColor={themeColors.placeholder} />
+          <Text style={[styles.label, { color: themeColors.textSecondary }]}>Problem Description</Text>
+          <TextInput style={[styles.textArea, { backgroundColor: themeColors.surface, borderColor: themeColors.border, color: themeColors.textPrimary }]} value={description} onChangeText={setDescription} placeholder="Describe the issue in detail..." placeholderTextColor={themeColors.placeholder} multiline numberOfLines={4} textAlignVertical="top" />
           <PhotoAttachment photos={photos} onChange={setPhotos} />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <Button title={loading ? 'Submitting...' : 'Submit Ticket'} onPress={handleSubmit} style={styles.submitBtn} disabled={loading} />

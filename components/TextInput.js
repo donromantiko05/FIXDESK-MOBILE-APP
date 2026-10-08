@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../constants/colors';
 import typography from '../constants/typography';
+import useTheme from '../contexts/ThemeContext';
  
 // Labeled input. Set secureTextEntry to get the show/hide eye icon.
 export default function AppTextInput({
@@ -21,17 +22,18 @@ export default function AppTextInput({
   autoCapitalize = 'none',
 }) {
   const [hidden, setHidden] = useState(secureTextEntry);
+  const { colors: themeColors } = useTheme();
  
   return (
     <View style={styles.wrapper}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={styles.box}>
+      {label ? <Text style={[styles.label, { color: themeColors.textSecondary }]}>{label}</Text> : null}
+      <View style={[styles.box, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
         <RNTextInput
-          style={styles.input}
+          style={[styles.input, { color: themeColors.textPrimary }]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.placeholder}
+          placeholderTextColor={themeColors.placeholder}
           secureTextEntry={hidden}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -42,7 +44,7 @@ export default function AppTextInput({
             <Ionicons
               name={hidden ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color={colors.textSecondary}
+              color={themeColors.textSecondary}
             />
           </TouchableOpacity>
         )}

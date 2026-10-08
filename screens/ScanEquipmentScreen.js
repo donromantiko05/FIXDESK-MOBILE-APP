@@ -14,11 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useIsFocused } from '@react-navigation/native';
 import colors from '../constants/colors';
+import useTheme from '../contexts/ThemeContext';
 import typography from '../constants/typography';
 import { PriorityBadge } from '../components/TicketCard';
 import { getEquipmentById, normalizeAssetId } from '../firebase/equipment';
 
-export default function ScanEquipmentScreen() {
+export default function ScanEquipmentScreen({ navigation }) {
+  const { colors: themeColors } = useTheme();
   const [permission, requestPermission] = useCameraPermissions();
   const [assetInput, setAssetInput] = useState('');
   const [equipment, setEquipment] = useState(null);
@@ -55,8 +57,8 @@ export default function ScanEquipmentScreen() {
   }, [lookupAsset, scanning]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}><Text style={styles.headerTitle}>Scan Equipment</Text></View>
+    <SafeAreaView style={[styles.safe, { backgroundColor: themeColors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}><Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Scan Equipment</Text></View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.cameraCard}>
           {!permission ? (
@@ -91,7 +93,7 @@ export default function ScanEquipmentScreen() {
             onChangeText={setAssetInput}
             style={styles.input}
             placeholder="Equipment ID, e.g. RTU-04"
-            placeholderTextColor={colors.placeholder}
+            placeholderTextColor={themeColors.placeholder}
             autoCapitalize="characters"
             returnKeyType="search"
             onSubmitEditing={() => lookupAsset(assetInput)}
@@ -105,19 +107,27 @@ export default function ScanEquipmentScreen() {
         {scanError ? <Text style={styles.error}>{scanError}</Text> : null}
 
         {equipment && (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.cardHeader}>
-              <Ionicons name="qr-code-outline" size={22} color={colors.primary} />
-              <View style={styles.cardTitleWrap}><Text style={styles.cardTitle}>{equipment.name}</Text><Text style={styles.assetId}>{equipment.assetId || equipment.id}</Text></View>
+              <Ionicons name="qr-code-outline" size={22} color={themeColors.primary} />
+              <View style={styles.cardTitleWrap}><Text style={[styles.cardTitle, { color: themeColors.textPrimary }]}>{equipment.name}</Text><Text style={styles.assetId}>{equipment.assetId || equipment.id}</Text></View>
             </View>
             <DetailRow label="Location" value={equipment.location || 'Not set'} />
             <DetailRow label="Installed" value={equipment.installed || 'Not set'} />
             <DetailRow label="Status" value={equipment.status || 'unknown'} badge />
-            <View style={styles.divider} />
-            <Text style={styles.historyTitle}>Maintenance History</Text>
+            <View style={[styles.divider, { backgroundColor: themeColors.border }]} />
+            <Text style={[styles.historyTitle, { color: themeColors.textSecondary }]}>Maintenance History</Text>
             {(equipment.history || []).length ? equipment.history.map((entry, index) => (
               <Text key={index} style={styles.historyItem}>• {typeof entry === 'string' ? entry : entry.description || entry.title || 'Maintenance record'}</Text>
             )) : <Text style={styles.historyItem}>No maintenance history recorded.</Text>}
+            <TouchableOpacity
+              style={styles.reportButton}
+              onPress={() => navigation.navigate('NewTicket', { equipment })}
+              accessibilityRole="button"
+              accessibilityLabel={'Report a problem for ' + equipment.name}
+            >
+              <Text style={styles.reportButtonText}>Report a Problem</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -126,10 +136,11 @@ export default function ScanEquipmentScreen() {
 }
 
 function DetailRow({ label, value, badge }) {
+  const { colors: themeColors } = useTheme();
   return (
     <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      {badge ? <PriorityBadge level={value} /> : <Text style={styles.detailValue}>{value}</Text>}
+      <Text style={[styles.detailLabel, { color: themeColors.textSecondary }]}>{label}</Text>
+      {badge ? <PriorityBadge level={value} /> : <Text style={[styles.detailValue, { color: themeColors.textPrimary }]}>{value}</Text>}
     </View>
   );
 }
@@ -168,4 +179,6 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 14 },
   historyTitle: { fontSize: typography.size.xs, fontWeight: typography.weight.bold, color: colors.textSecondary, marginBottom: 5 },
   historyItem: { fontSize: typography.size.xs, color: colors.textSecondary, lineHeight: 18 },
+  reportButton: { marginTop: 16, minHeight: 46, borderRadius: 8, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  reportButtonText: { color: colors.white, fontSize: typography.size.sm, fontWeight: typography.weight.bold },
 });
