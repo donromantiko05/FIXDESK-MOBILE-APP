@@ -12,6 +12,9 @@ exports.sendPushForNotification = onDocumentCreated('notifications/{notification
   const userId = notification?.userId;
   if (!userId) return;
 
+  const userSnapshot = await db.collection('users').doc(userId).get();
+  if (!userSnapshot.exists || userSnapshot.get('preferences.pushNotifications') === false) return;
+
   const tokenSnapshot = await db.collection('users').doc(userId).collection('pushTokens').get();
   if (tokenSnapshot.empty) return;
 

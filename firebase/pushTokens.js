@@ -27,11 +27,15 @@ export const registerPushToken = async (userId) => {
 
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
   const id = tokenDocumentId(token);
+  const previousId = await AsyncStorage.getItem(tokenKey(userId));
   await setDoc(doc(db, 'users', userId, 'pushTokens', id), {
     token,
     platform: Platform.OS,
     updatedAt: serverTimestamp(),
   });
+  if (previousId && previousId !== id) {
+    await deleteDoc(doc(db, 'users', userId, 'pushTokens', previousId));
+  }
   await AsyncStorage.setItem(tokenKey(userId), id);
   return token;
 };

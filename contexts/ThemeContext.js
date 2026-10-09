@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
-import { Appearance } from 'react-native';
+import { Appearance, Platform } from 'react-native';
 import { DarkTheme, DefaultTheme } from '@react-navigation/native';
 import lightColors from '../constants/colors';
 import useUserPreferences from '../hooks/useUserPreferences';
@@ -30,7 +30,9 @@ export function ThemeProvider({ children }) {
   const isDark = Boolean(preferences.darkMode);
   const colors = isDark ? darkColors : lightColors;
   useEffect(() => {
-    Appearance.setColorScheme(isDark ? 'dark' : 'light');
+    if (Platform.OS !== 'web' && typeof Appearance.setColorScheme === 'function') {
+      Appearance.setColorScheme(isDark ? 'dark' : 'light');
+    }
   }, [isDark]);
   const setDarkMode = useCallback((value) => setPreference('darkMode', value), [setPreference]);
   const navigationTheme = useMemo(() => {
